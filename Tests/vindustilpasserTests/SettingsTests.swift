@@ -56,4 +56,23 @@ struct SettingsTests {
         #expect(Set([english, ukrainian]).count == 1)
         #expect(HotKey(keyCode: UInt32(kVK_F11), modifiers: [], displayKey: "F11").isGlobalValid)
     }
+
+    @Test func modifiedArrowLocalShortcuts() throws {
+        let left = HotKey(keyCode: UInt32(kVK_LeftArrow), modifiers: [.command], displayKey: "←")
+        let right = HotKey(keyCode: UInt32(kVK_RightArrow), modifiers: [.command], displayKey: "→")
+        #expect(left.isLocalValid)
+        #expect(right.isLocalValid)
+        for modifiers: HotKeyModifiers in [[.option], [.control], [.command, .shift], [.option, .shift]] {
+            #expect(HotKey(keyCode: left.keyCode, modifiers: modifiers, displayKey: "←").isLocalValid)
+        }
+        for modifiers: HotKeyModifiers in [[], [.shift]] {
+            #expect(!HotKey(keyCode: left.keyCode, modifiers: modifiers, displayKey: "←").isLocalValid)
+        }
+        var settings = AppSettings.defaults
+        settings.presets[1].hotKey = left
+        settings.presets[2].hotKey = right
+        try settings.validate()
+        settings.presets[2].hotKey = left
+        #expect(throws: SettingsError.self) { try settings.validate() }
+    }
 }

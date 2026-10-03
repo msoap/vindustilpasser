@@ -56,9 +56,11 @@ struct AppSettings: Codable {
             guard preset.area.isValid, presetIDs.insert(preset.id).inserted else { throw SettingsError.invalid }
             guard let key = preset.hotKey else { continue }
             if preset.scope == .global {
-                guard key.isGlobalValid, globalKeys.insert(key).inserted else { throw SettingsError.conflict }
+                guard key.isGlobalValid else { throw SettingsError.invalid }
+                guard globalKeys.insert(key).inserted else { throw SettingsError.conflict }
             } else {
-                guard key.isLocalValid, localKeys.insert(key).inserted else { throw SettingsError.conflict }
+                guard key.isLocalValid else { throw SettingsError.invalid }
+                guard localKeys.insert(key).inserted else { throw SettingsError.conflict }
             }
         }
         guard localKeys.isDisjoint(with: globalKeys) else { throw SettingsError.conflict }

@@ -69,6 +69,8 @@ struct HotKey: Codable, Hashable {
 
     var isLocalValid: Bool {
         !Self.reservedKeys.contains(keyCode)
+            && (!Self.arrowKeys.contains(keyCode)
+                || modifiers.contains(.command) || modifiers.contains(.option) || modifiers.contains(.control))
             && !(modifiers.contains(.command) && (keyCode == UInt32(kVK_ANSI_Comma) || keyCode == UInt32(kVK_ANSI_Q)))
     }
 
@@ -84,5 +86,6 @@ struct HotKey: Codable, Hashable {
         kVK_F1, kVK_F2, kVK_F3, kVK_F4, kVK_F5, kVK_F6, kVK_F7, kVK_F8, kVK_F9, kVK_F10,
         kVK_F11, kVK_F12, kVK_F13, kVK_F14, kVK_F15, kVK_F16, kVK_F17, kVK_F18, kVK_F19, kVK_F20
     ].map(UInt32.init).reduce(into: Set<UInt32>()) { $0.insert($1) }
-    static let reservedKeys: Set<UInt32> = [kVK_Escape, kVK_Return, kVK_ANSI_KeypadEnter, kVK_LeftArrow, kVK_RightArrow, kVK_UpArrow, kVK_DownArrow].map(UInt32.init).reduce(into: Set<UInt32>()) { $0.insert($1) }
+    static let reservedKeys: Set<UInt32> = [kVK_Escape, kVK_Return, kVK_ANSI_KeypadEnter].map(UInt32.init).reduce(into: Set<UInt32>()) { $0.insert($1) }
+    static let arrowKeys: Set<UInt32> = [kVK_LeftArrow, kVK_RightArrow, kVK_UpArrow, kVK_DownArrow].map(UInt32.init).reduce(into: Set<UInt32>()) { $0.insert($1) }
 }

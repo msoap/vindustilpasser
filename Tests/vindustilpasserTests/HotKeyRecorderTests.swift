@@ -29,5 +29,39 @@ struct HotKeyRecorderTests {
         #expect(recorder.hotKey?.keyCode == UInt32(kVK_ANSI_2))
         #expect(recorder.title == "2")
         #expect(observed == recorder.hotKey)
+
+        recorder.performClick(nil)
+        let commandLeft = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command], timestamp: 0,
+                                                         windowNumber: 0, context: nil, characters: "\u{F702}", charactersIgnoringModifiers: "\u{F702}",
+                                                         isARepeat: false, keyCode: UInt16(kVK_LeftArrow)))
+        recorder.keyDown(with: commandLeft)
+        #expect(recorder.hotKey?.keyCode == UInt32(kVK_LeftArrow))
+        #expect(recorder.hotKey?.modifiers == [.command])
+        #expect(recorder.title == "⌘←")
+        #expect(observed == recorder.hotKey)
+
+        recorder.performClick(nil)
+        let commandRight = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command], timestamp: 0,
+                                                          windowNumber: 0, context: nil, characters: "\u{F703}", charactersIgnoringModifiers: "\u{F703}",
+                                                          isARepeat: false, keyCode: UInt16(kVK_RightArrow)))
+        recorder.keyDown(with: commandRight)
+        #expect(recorder.hotKey?.keyCode == UInt32(kVK_RightArrow))
+        #expect(recorder.hotKey?.modifiers == [.command])
+        #expect(recorder.title == "⌘→")
+        #expect(observed == recorder.hotKey)
+
+        recorder.performClick(nil)
+        let optionLeft = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.option], timestamp: 0,
+                                                        windowNumber: 0, context: nil, characters: "\u{F702}", charactersIgnoringModifiers: "\u{F702}",
+                                                        isARepeat: false, keyCode: UInt16(kVK_LeftArrow)))
+        recorder.keyDown(with: optionLeft)
+        #expect(recorder.title == "⌥←")
+
+        recorder.performClick(nil)
+        let commandShiftRight = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command, .shift], timestamp: 0,
+                                                               windowNumber: 0, context: nil, characters: "\u{F703}", charactersIgnoringModifiers: "\u{F703}",
+                                                               isARepeat: false, keyCode: UInt16(kVK_RightArrow)))
+        recorder.keyDown(with: commandShiftRight)
+        #expect(recorder.title == "⇧⌘→")
     }
 }
