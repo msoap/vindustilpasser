@@ -72,3 +72,8 @@ For an unsigned distributable image, run `make build-dmg`. It names the image us
 5. **Why does macOS block the app from the DMG?**
 
  - The DMG contains an unsigned, unnotarized app. If you trust the download, copy the app to Applications and try opening it. Then go to System Settings → Privacy & Security → **Open Anyway** and confirm. See [Apple's guidance](https://support.apple.com/en-ie/102445).
+
+6. **Can we use macOS system keyboard shortcuts to manage windows?**
+
+ - Yes, but less flexibly. Аnd system management works visibly slower because of animations.
+ 
