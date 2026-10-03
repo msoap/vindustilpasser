@@ -91,7 +91,19 @@ final class AppCoordinator {
     func openAbout() {
         panel.cancel()
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(nil)
+        let repositoryURL = URL(string: "https://github.com/msoap/vindustilpasser")!
+        let credits = NSMutableAttributedString(string: "Github\n", attributes: [
+            .font: NSFont.boldSystemFont(ofSize: 12)
+        ])
+        credits.append(NSAttributedString(string: repositoryURL.absoluteString, attributes: [
+            .link: repositoryURL,
+            .foregroundColor: NSColor.linkColor,
+            .font: NSFont.systemFont(ofSize: 12)
+        ]))
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        credits.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: credits.length))
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     }
 
     func quit() { NSApp.terminate(nil) }
