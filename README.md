@@ -50,3 +50,25 @@ After a persistent identity has been used, the build refuses to fall back to ad-
 If an existing Accessibility row stays enabled but the app reports no access after an ad-hoc rebuild, set up the persistent identity, rebuild, quit any running old copy, and grant access to the newly signed app once. The old ad-hoc row can be removed in System Settings. Future builds signed by the same certificate should keep the same designated requirement; do not remove the certificate or switch the app's path.
 
 For an unsigned distributable image, run `make build-dmg`. It creates `build/vindustilpasser.dmg` from a separate unsigned app; the signed local app is untouched. SwiftPM adds a linker signature to arm64 executables, so the DMG target removes it from the staged copy before packaging. The DMG is not signed or notarized.
+
+## Q&A
+
+1. **What inspired vindustilpasser?** 
+
+ - [Divvy](https://mizage.com/divvy/), a grid-based window manager. Its [Mac App Store version](https://apps.apple.com/us/app/divvy-window-manager/id413857545) was last updated in 2019, and it's still Intel-only.
+
+2. **What does the name mean?** 
+
+ - Try translating from Norwegian.
+
+3. **What's the best way to install it?**
+
+ - Clone this repository, then run `make build && make deploy` from its directory.
+
+4. **How do I install the Xcode Command Line Tools?**
+
+ - Run `xcode-select --install` in Terminal and follow the prompt.
+
+5. **Why does macOS block the app from the DMG?**
+
+ - The DMG contains an unsigned, unnotarized app. If you trust the download, copy the app to Applications and try opening it. Then go to System Settings → Privacy & Security → **Open Anyway** and confirm. See [Apple's guidance](https://support.apple.com/en-ie/102445).
