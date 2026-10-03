@@ -21,7 +21,17 @@ Follow nearby Swift code: four-space indentation, UpperCamelCase types and files
 
 ## Testing Guidelines
 
-Add focused `@Test` cases with `#expect` in a matching `*Tests.swift` file for logic changes. Run `make test` before proposing changes. UI, Accessibility permissions, global shortcuts, and multi-display behavior need manual checks on a macOS desktop; describe those checks in the pull request. There is no stated coverage threshold.
+Add focused `@Test` cases with `#expect` in a matching `*Tests.swift` file for logic changes. There is no stated coverage threshold.
+
+## Verification
+
+```sh
+make test
+codesign --verify --strict build/vindustilpasser.app
+hdiutil verify build/vindustilpasser.dmg
+```
+
+Build both artifacts first. Manually check window control and Accessibility access on left/right and stacked displays, alternate Dock positions, size-constrained apps, and keyboard-layout changes. Describe manual checks in the pull request.
 
 ## Commit & Pull Request Guidelines
 

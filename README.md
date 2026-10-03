@@ -19,13 +19,11 @@ To install the signed build, use `make deploy`. It chooses `~/Applications` if t
 
 ## Use
 
-The default activation shortcut is Command-F11. It opens a grid for the focused window of the current or last active external application. Drag over cells and release the mouse to apply. Arrow keys move the selection; Shift with arrows resizes it from its top-left corner. Hold Option for double grid precision. Return applies; Escape or the activation shortcut cancels. Command-comma opens Settings, Command-W closes the active Settings or About window, and Command-Q quits while vindustilpasser UI is open.
+Press Command-F11 to open the positioning grid for the active window. Drag across cells and release to move and resize it. Arrow keys move the selection; Shift-arrow keys resize it. Hold Option for a finer grid. Press Return to apply or Escape to cancel.
 
-The menu-bar icon opens the grid, Settings, About, and Quit. About links to the project's Github repository. Settings has General, Grid, and Shortcuts toolbar sections. Grid dimension edits also save when leaving Grid or closing Settings; Enter is not required. In Shortcuts, use the arrow keys to select a preset and Return or keypad Enter to edit it. The preset editor opens as a modal sheet; press Escape to cancel it. The default global Command-F10 preset fills the usable screen without entering native fullscreen. Default local `1` and `2` presets place a window in the left or right half. Local shortcuts are bound to physical macOS key codes, so switching keyboard layouts does not change which key activates a preset.
+Command-F10 fills the usable screen without entering macOS fullscreen. Press `1` or `2` while the grid is open to place the window in the left or right half. Change grid size and shortcuts in Settings (Command-comma).
 
-Before controlling windows, grant vindustilpasser Accessibility access in System Settings → Privacy & Security → Accessibility. The app uses the standard macOS permission prompt on the first window action. It never changes permission settings itself. Some native fullscreen, minimized, fixed-size, or application-constrained windows cannot be resized.
-
-Settings live at `~/.config/vindustilpasser/settings.json`. The file is created when a setting is saved. Invalid JSON is preserved and defaults are used in memory until a setting is changed.
+Grant vindustilpasser Accessibility access when prompted, or in System Settings → Privacy & Security → Accessibility. Some apps restrict how their windows can be resized.
 
 ## Signing
 
@@ -40,13 +38,3 @@ After a persistent identity has been used, the build refuses to fall back to ad-
 If an existing Accessibility row stays enabled but the app reports no access after an ad-hoc rebuild, set up the persistent identity, rebuild, quit any running old copy, and grant access to the newly signed app once. The old ad-hoc row can be removed in System Settings. Future builds signed by the same certificate should keep the same designated requirement; do not remove the certificate or switch the app's path.
 
 For an unsigned distributable image, run `make build-dmg`. It creates `build/vindustilpasser.dmg` from a separate unsigned app; the signed local app is untouched. SwiftPM adds a linker signature to arm64 executables, so the DMG target removes it from the staged copy before packaging. The DMG is not signed or notarized.
-
-## Verification
-
-```sh
-make test
-codesign --verify --strict build/vindustilpasser.app
-hdiutil verify build/vindustilpasser.dmg
-```
-
-Window-control and permission behavior require hands-on testing with normal apps on a macOS desktop. Also check displays arranged left/right and above/below, Dock positions, application-enforced size limits, and local shortcuts after changing keyboard layout.
