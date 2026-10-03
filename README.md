@@ -1,5 +1,7 @@
 # vindustilpasser
 
+<p align="center"><img width="398" height="344" alt="image" src="https://github.com/user-attachments/assets/0e655e34-cf84-4c6b-9095-582f388e2732" /></p>  
+
 vindustilpasser is a native macOS menu-bar utility for positioning windows of other applications. It uses AppKit, Accessibility, and Carbon hotkeys. It has no Dock icon or normal application menu.
 
 ## Build and run
@@ -24,6 +26,16 @@ Press Command-F11 to open the positioning grid for the active window. Drag acros
 Command-F10 fills the usable screen without entering macOS fullscreen. Change grid size and add your own presets and shortcuts in Settings (Command-comma).
 
 Grant vindustilpasser Accessibility access when prompted, or in System Settings → Privacy & Security → Accessibility. Some apps restrict how their windows can be resized.
+
+## Settings screenshot
+
+<img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/d1de26d4-f9b9-4350-ac31-525d0e8ee5a6" />
+
+<img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/a5a9f17d-2e82-4a56-9bf4-771f032dddde" />
+
+<img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/e774a8a7-0a63-45e3-94fd-bf9100d0c688" />
+
+<img width="346" height="320" alt="image" src="https://github.com/user-attachments/assets/b8ae4f2f-e0fe-45be-91b7-725f6b05e8a7" />
 
 ## Signing
 
