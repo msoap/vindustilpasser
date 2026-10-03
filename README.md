@@ -21,7 +21,7 @@ To install the signed build, use `make deploy`. It chooses `~/Applications` if t
 
 Press Command-F11 to open the positioning grid for the active window. Drag across cells and release to move and resize it. Arrow keys move the selection; Shift-arrow keys resize it. Hold Option for a finer grid. Press Return to apply or Escape to cancel.
 
-Command-F10 fills the usable screen without entering macOS fullscreen. Press `1` or `2` while the grid is open to place the window in the left or right half. Change grid size and shortcuts in Settings (Command-comma).
+Command-F10 fills the usable screen without entering macOS fullscreen. Change grid size and add your own presets and shortcuts in Settings (Command-comma).
 
 Grant vindustilpasser Accessibility access when prompted, or in System Settings → Privacy & Security → Accessibility. Some apps restrict how their windows can be resized.
 

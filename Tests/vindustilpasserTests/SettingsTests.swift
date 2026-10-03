@@ -6,6 +6,10 @@ struct SettingsTests {
         let settings = AppSettings.defaults
         #expect(settings.version == 1)
         #expect(settings.grid.columns == 8)
+        #expect(settings.presets.count == 1)
+        #expect(settings.presets[0].name == "Full")
+        #expect(settings.presets[0].scope == .global)
+        #expect(settings.presets[0].hotKey == HotKey(keyCode: UInt32(kVK_F10), modifiers: [.command], displayKey: "F10"))
         try settings.validate()
         let data = try JSONEncoder().encode(settings)
         let decoded = try SettingsMigration.decode(data)
@@ -39,9 +43,15 @@ struct SettingsTests {
 
     @Test func missingOptionalNameAndHotKeyValidation() throws {
         var settings = AppSettings.defaults
-        settings.presets[1].name = nil
+        var localPreset = settings.presets[0]
+        localPreset.id = UUID()
+        localPreset.name = nil
+        localPreset.scope = .local
+        localPreset.hotKey = nil
+        settings.presets.append(localPreset)
         let decoded = try SettingsMigration.decode(JSONEncoder().encode(settings))
         #expect(decoded.presets[1].name == nil)
+        #expect(decoded.presets[1].hotKey == nil)
         #expect(!HotKey(keyCode: UInt32(kVK_ANSI_A), modifiers: [], displayKey: "A").isGlobalValid)
         #expect(HotKey(keyCode: UInt32(kVK_ANSI_A), modifiers: [], displayKey: "A").isLocalValid)
         #expect(HotKeyModifiers(flags: [.command, .shift]).carbon == UInt32(cmdKey | shiftKey))
@@ -69,8 +79,9 @@ struct SettingsTests {
             #expect(!HotKey(keyCode: left.keyCode, modifiers: modifiers, displayKey: "←").isLocalValid)
         }
         var settings = AppSettings.defaults
-        settings.presets[1].hotKey = left
-        settings.presets[2].hotKey = right
+        let area = settings.presets[0].area
+        settings.presets.append(WindowPreset(id: UUID(), name: nil, scope: .local, hotKey: left, area: area))
+        settings.presets.append(WindowPreset(id: UUID(), name: nil, scope: .local, hotKey: right, area: area))
         try settings.validate()
         settings.presets[2].hotKey = left
         #expect(throws: SettingsError.self) { try settings.validate() }

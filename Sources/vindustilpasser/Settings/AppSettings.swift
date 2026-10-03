@@ -37,13 +37,7 @@ struct AppSettings: Codable {
         presets: [
             WindowPreset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!, name: "Full", scope: .global,
                          hotKey: HotKey(keyCode: UInt32(kVK_F10), modifiers: [.command], displayKey: "F10"),
-                         area: StoredGridArea(x: 0, y: 0, width: 8, height: 8, columns: 8, rows: 8)),
-            WindowPreset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!, name: "Left Half", scope: .local,
-                         hotKey: HotKey(keyCode: UInt32(kVK_ANSI_1), modifiers: [], displayKey: "1"),
-                         area: StoredGridArea(x: 0, y: 0, width: 4, height: 8, columns: 8, rows: 8)),
-            WindowPreset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!, name: "Right Half", scope: .local,
-                         hotKey: HotKey(keyCode: UInt32(kVK_ANSI_2), modifiers: [], displayKey: "2"),
-                         area: StoredGridArea(x: 4, y: 0, width: 4, height: 8, columns: 8, rows: 8))
+                         area: StoredGridArea(x: 0, y: 0, width: 8, height: 8, columns: 8, rows: 8))
         ]
     )
 
