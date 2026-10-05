@@ -31,7 +31,7 @@ Grant vindustilpasser Accessibility access when prompted, or in System Settings 
 
 ## Settings screenshot
 
-<img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/d1de26d4-f9b9-4350-ac31-525d0e8ee5a6" />
+<img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/7d38be38-b772-4ecd-aeff-f7a954640fe5" />
 
 <img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/a5a9f17d-2e82-4a56-9bf4-771f032dddde" />
 
