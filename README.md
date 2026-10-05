@@ -25,6 +25,8 @@ Press Command-F11 to open the positioning grid for the active window. Drag acros
 
 Command-F10 fills the usable screen without entering macOS fullscreen. Change grid size and add your own presets and shortcuts in Settings (Command-comma).
 
+In Settings → General, enable **Launch at login** to add the installed app to your user’s Login Items. Turn it off to remove the app. If macOS requires approval, allow the app in System Settings → General → Login Items.
+
 Grant vindustilpasser Accessibility access when prompted, or in System Settings → Privacy & Security → Accessibility. Some apps restrict how their windows can be resized.
 
 ## Settings screenshot
@@ -49,7 +51,7 @@ After a persistent identity has been used, the build refuses to fall back to ad-
 
 If an existing Accessibility row stays enabled but the app reports no access after an ad-hoc rebuild, set up the persistent identity, rebuild, quit any running old copy, and grant access to the newly signed app once. The old ad-hoc row can be removed in System Settings. Future builds signed by the same certificate should keep the same designated requirement; do not remove the certificate or switch the app's path.
 
-For an unsigned distributable image, run `make build-dmg`. It names the image using the app version in `Resources/Info.plist`, such as `build/vindustilpasser-1.0.0.dmg`. It packages a separate unsigned app; the signed local app is untouched. SwiftPM adds a linker signature to arm64 executables, so the DMG target removes it from the staged copy before packaging. The DMG is not signed or notarized.
+For an unsigned distributable image, run `make build-dmg`. It names the image using the app version in `Resources/Info.plist`, such as `build/vindustilpasser-1.1.0.dmg`. It packages a separate unsigned app; the signed local app is untouched. SwiftPM adds a linker signature to arm64 executables, so the DMG target removes it from the staged copy before packaging. The DMG is not signed or notarized.
 
 ## Q&A
 
@@ -76,4 +78,3 @@ For an unsigned distributable image, run `make build-dmg`. It names the image us
 6. **Can we use macOS system keyboard shortcuts to manage windows?**
 
  - Yes, but less flexibly. Аnd system management works visibly slower because of animations.
- 

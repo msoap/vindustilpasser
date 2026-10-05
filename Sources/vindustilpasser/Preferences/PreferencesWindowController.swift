@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 
 @MainActor
 final class PreferencesWindowController: NSWindowController, NSWindowDelegate, NSToolbarDelegate,
@@ -8,6 +9,8 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
     private let tabs = NSTabView()
     private let toolbar = NSToolbar(identifier: "SettingsToolbar")
     private let menuBarCheckbox = NSButton(checkboxWithTitle: "Show icon in menu bar", target: nil, action: nil)
+    private let launchAtLoginCheckbox = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
+    private let loginItemStatusLabel = NSTextField(labelWithString: "")
     private let activationRecorder = HotKeyRecorderView()
     private let permissionLabel = NSTextField(labelWithString: "")
     private let columnsField = NSTextField()
@@ -47,6 +50,8 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
         super.showWindow(sender)
     }
 
+    func windowDidBecomeKey(_ notification: Notification) { refreshLoginItemStatus() }
+
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
         ["General", "Grid", "Shortcuts"].map { NSToolbarItem.Identifier($0) }
     }
@@ -85,6 +90,7 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
     func refresh(_ settings: AppSettings) {
         self.settings = settings
         menuBarCheckbox.state = settings.general.showMenuBarIcon ? .on : .off
+        refreshLoginItemStatus()
         activationRecorder.hotKey = settings.general.activationHotKey
         columnsField.integerValue = settings.grid.columns
         rowsField.integerValue = settings.grid.rows
@@ -128,14 +134,20 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
         menuBarCheckbox.target = self
         menuBarCheckbox.action = #selector(toggleMenuBar)
         view.addSubview(menuBarCheckbox)
-        view.addSubview(label("Accessibility:", frame: CGRect(x: 30, y: 213, width: 120, height: 22)))
-        permissionLabel.frame = CGRect(x: 150, y: 213, width: 220, height: 22)
+        launchAtLoginCheckbox.frame = CGRect(x: 30, y: 231, width: 250, height: 25)
+        launchAtLoginCheckbox.target = self
+        launchAtLoginCheckbox.action = #selector(toggleLaunchAtLogin)
+        view.addSubview(launchAtLoginCheckbox)
+        loginItemStatusLabel.frame = CGRect(x: 48, y: 207, width: 500, height: 20)
+        view.addSubview(loginItemStatusLabel)
+        view.addSubview(label("Accessibility:", frame: CGRect(x: 30, y: 169, width: 120, height: 22)))
+        permissionLabel.frame = CGRect(x: 150, y: 169, width: 220, height: 22)
         view.addSubview(permissionLabel)
         let request = NSButton(title: "Request Access", target: self, action: #selector(requestAccess))
-        request.frame = CGRect(x: 30, y: 168, width: 130, height: 30)
+        request.frame = CGRect(x: 30, y: 124, width: 130, height: 30)
         view.addSubview(request)
         view.addSubview(label("Access is granted in System Settings → Privacy & Security → Accessibility.",
-                              frame: CGRect(x: 30, y: 127, width: 520, height: 25)))
+                              frame: CGRect(x: 30, y: 83, width: 520, height: 25)))
     }
 
     private func buildGridTab() {
@@ -196,6 +208,27 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
         var updated = settings
         updated.general.showMenuBarIcon = menuBarCheckbox.state == .on
         commit(updated)
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        do {
+            if launchAtLoginCheckbox.state == .on {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            showError(error)
+        }
+        refreshLoginItemStatus()
+    }
+
+    private func refreshLoginItemStatus() {
+        let status = SMAppService.mainApp.status
+        launchAtLoginCheckbox.state = (status == .enabled || status == .requiresApproval) ? .on : .off
+        loginItemStatusLabel.stringValue = status == .requiresApproval
+            ? "Allow this app in System Settings → General → Login Items."
+            : ""
     }
 
     @objc private func requestAccess() {
