@@ -11,6 +11,7 @@ final class AppCoordinator {
     private let hotKeys = HotKeyManager()
     private let statusItem = StatusItemController()
     private var preferences: PreferencesWindowController?
+    private weak var aboutWindow: NSWindow?
     private var commandMonitor: Any?
     private let logger = Logger(subsystem: "com.local.vindustilpasser", category: "app")
 
@@ -73,24 +74,27 @@ final class AppCoordinator {
     }
 
     func openSettings() {
+        let screen = auxiliaryWindowScreen()
         panel.cancel()
         if preferences == nil {
             preferences = PreferencesWindowController(settings: settings, onChange: { [weak self] updated in
                 try self?.updateSettings(updated)
             })
         }
-        NSApp.activate(ignoringOtherApps: true)
+        if let window = preferences?.window, let screen { place(window, on: screen) }
         if let sheet = preferences?.window?.attachedSheet {
             sheet.makeKeyAndOrderFront(nil)
         } else {
             preferences?.showWindow(nil)
             preferences?.window?.makeKeyAndOrderFront(nil)
         }
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     func openAbout() {
+        let screen = auxiliaryWindowScreen()
         panel.cancel()
-        NSApp.activate(ignoringOtherApps: true)
+        if let aboutWindow, let screen { place(aboutWindow, on: screen) }
         let repositoryURL = URL(string: "https://github.com/msoap/vindustilpasser")!
         let credits = NSMutableAttributedString(string: "Github\n", attributes: [
             .font: NSFont.boldSystemFont(ofSize: 12)
@@ -103,7 +107,31 @@ final class AppCoordinator {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
         credits.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: credits.length))
+        let existingWindows = Set(NSApp.windows.map(ObjectIdentifier.init))
+        let previousKeyWindow = NSApp.keyWindow
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
+        let window = aboutWindow
+            ?? NSApp.windows.first(where: { !existingWindows.contains(ObjectIdentifier($0)) })
+            ?? (NSApp.keyWindow !== previousKeyWindow ? NSApp.keyWindow : nil)
+        if let window {
+            aboutWindow = window
+            if let screen { place(window, on: screen) }
+            window.makeKeyAndOrderFront(nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func auxiliaryWindowScreen() -> NSScreen? {
+        if let screen = panel.target?.screen { return screen }
+        if AccessibilityPermission.granted, let screen = try? windowManager.captureTarget().screen { return screen }
+        return statusItem.screen ?? NSApp.keyWindow?.screen ?? NSScreen.main
+    }
+
+    private func place(_ window: NSWindow, on screen: NSScreen) {
+        window.collectionBehavior.insert(.moveToActiveSpace)
+        let visible = screen.visibleFrame
+        window.setFrameOrigin(CGPoint(x: visible.midX - window.frame.width / 2,
+                                    y: visible.midY - window.frame.height / 2))
     }
 
     func quit() { NSApp.terminate(nil) }

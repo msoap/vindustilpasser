@@ -7,6 +7,7 @@ final class StatusItemController: NSObject {
     var onSettings: (() -> Void)?
     var onAbout: (() -> Void)?
     var onQuit: (() -> Void)?
+    var screen: NSScreen? { item?.button?.window?.screen }
 
     func setVisible(_ visible: Bool) {
         if visible, item == nil {
