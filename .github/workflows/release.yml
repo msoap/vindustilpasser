@@ -76,6 +76,10 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v8
         with:
           pattern: dmg-*
@@ -94,8 +98,24 @@ jobs:
           if [[ "$RELEASE_TAG" == *-beta-* ]]; then
             flags+=(--prerelease --latest=false)
           fi
+          previous_tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude "$RELEASE_TAG" "$RELEASE_TAG" 2>/dev/null || true)
+          if [[ -n "$previous_tag" ]]; then
+            commit_heading="### Commits since $previous_tag"
+            commits=$(git log --format='- %s' "$previous_tag..$RELEASE_TAG")
+          else
+            commit_heading='### Commits'
+            commits=$(git log --format='- %s' "$RELEASE_TAG")
+          fi
+          if [[ -z "$commits" ]]; then
+            commits='- No new commits'
+          fi
+          printf -v notes '%s %s\n\n%s\n\n%s\n\n%s' \
+            "[![Github Releases](https://img.shields.io/github/downloads/$GITHUB_REPOSITORY/$RELEASE_TAG/total.svg)](https://github.com/$GITHUB_REPOSITORY/releases/latest)" \
+            "[![Github All Releases](https://img.shields.io/github/downloads/$GITHUB_REPOSITORY/total.svg)](https://github.com/$GITHUB_REPOSITORY/releases)" \
+            "$commit_heading" "$commits" \
+            'These apps are ad-hoc signed and not notarized. If macOS blocks opening the app, use System Settings > Privacy & Security > Open Anyway after copying it to Applications.'
           gh release create "$RELEASE_TAG" dist/*.dmg \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag --generate-notes --title "$RELEASE_TAG" \
-            --notes 'These apps are ad-hoc signed and not notarized. If macOS blocks opening the app, use System Settings > Privacy & Security > Open Anyway after copying it to Applications.' \
+            --notes "$notes" \
             "${flags[@]}"
