@@ -1,10 +1,22 @@
 APP := vindustilpasser
 BUNDLE := build/$(APP).app
 BUNDLE_ID := com.local.vindustilpasser
-VERSION := $(shell /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
-DMG := build/$(APP)-$(VERSION).dmg
+APP_VERSION := $(shell /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+DMG := build/$(APP)-$(APP_VERSION).dmg
 
-.PHONY: build build-unsigned assemble-app clean deploy build-dmg test setup-signing
+.PHONY: build build-unsigned assemble-app clean deploy build-dmg test setup-signing new-version inc-patch-version inc-minor-version inc-major-version
+
+new-version:
+	@./scripts/update-version.sh set
+
+inc-patch-version:
+	@./scripts/update-version.sh patch
+
+inc-minor-version:
+	@./scripts/update-version.sh minor
+
+inc-major-version:
+	@./scripts/update-version.sh major
 
 setup-signing:
 	./scripts/setup-local-signing.sh

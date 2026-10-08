@@ -55,6 +55,8 @@ For a distributable image, run `make build-dmg`. It names the image using the ap
 
 ## Releases
 
+Set a specific app version with `make new-version VERSION=1.2.3`, or bump the current version with `make inc-patch-version`, `make inc-minor-version`, or `make inc-major-version`. These commands update `CFBundleShortVersionString` in `Resources/Info.plist`; minor and major bumps reset lower components to zero.
+
 Pushing a tag named `vN.N.N` or `vN.N.N-beta-NNN` runs the GitHub Actions release workflow. The numeric part must match `CFBundleShortVersionString` in `Resources/Info.plist`. Beta tags create GitHub prereleases; the plist version remains numeric because macOS requires three period-separated integers. The workflow tests and builds on Apple silicon and Intel runners, then attaches an ad-hoc signed DMG for each architecture to the GitHub Release. No signing certificate or Apple notarization credentials are needed.
 
 Commit the version change and workflow before tagging. For example, when the plist version is `1.1.1`, run `git tag v1.1.1 && git push origin v1.1.1`. For a beta of the same version, use a tag such as `v1.1.1-beta-001`.
