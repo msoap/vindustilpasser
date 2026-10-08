@@ -51,7 +51,13 @@ After a persistent identity has been used, the build refuses to fall back to ad-
 
 If an existing Accessibility row stays enabled but the app reports no access after an ad-hoc rebuild, set up the persistent identity, rebuild, quit any running old copy, and grant access to the newly signed app once. The old ad-hoc row can be removed in System Settings. Future builds signed by the same certificate should keep the same designated requirement; do not remove the certificate or switch the app's path.
 
-For an unsigned distributable image, run `make build-dmg`. It names the image using the app version in `Resources/Info.plist`, such as `build/vindustilpasser-N.N.N.dmg`. It packages a separate unsigned app; the signed local app is untouched. SwiftPM adds a linker signature to arm64 executables, so the DMG target removes it from the staged copy before packaging. The DMG is not signed or notarized.
+For a distributable image, run `make build-dmg`. It names the image using the app version in `Resources/Info.plist`, such as `build/vindustilpasser-N.N.N.dmg`. It packages a separate ad-hoc signed app; the locally signed app is untouched. The DMG itself is not signed or notarized. Ad-hoc signing lets the app run on Apple silicon, but does not establish a trusted developer identity; Accessibility authorization may need renewal after updates.
+
+## Releases
+
+Pushing a tag named `vN.N.N` or `vN.N.N-beta-NNN` runs the GitHub Actions release workflow. The numeric part must match `CFBundleShortVersionString` in `Resources/Info.plist`. Beta tags create GitHub prereleases; the plist version remains numeric because macOS requires three period-separated integers. The workflow tests and builds on Apple silicon and Intel runners, then attaches an ad-hoc signed DMG for each architecture to the GitHub Release. No signing certificate or Apple notarization credentials are needed.
+
+Commit the version change and workflow before tagging. For example, when the plist version is `1.1.1`, run `git tag v1.1.1 && git push origin v1.1.1`. For a beta of the same version, use a tag such as `v1.1.1-beta-001`.
 
 ## Q&A
 
@@ -73,7 +79,7 @@ For an unsigned distributable image, run `make build-dmg`. It names the image us
 
 5. **Why does macOS block the app from the DMG?**
 
- - The DMG contains an unsigned, unnotarized app. If you trust the download, copy the app to Applications and try opening it. Then go to System Settings → Privacy & Security → **Open Anyway** and confirm. See [Apple's guidance](https://support.apple.com/en-ie/102445).
+ - The DMG contains an ad-hoc signed, unnotarized app. If you trust the download, copy the app to Applications and try opening it. Then go to System Settings → Privacy & Security → **Open Anyway** and confirm. See [Apple's guidance](https://support.apple.com/en-ie/102445).
 
 6. **Can we use macOS system keyboard shortcuts to manage windows?**
 

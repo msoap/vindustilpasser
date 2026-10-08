@@ -11,7 +11,7 @@
 - `open build/vindustilpasser.app` runs the local app; grant Accessibility access when prompted.
 - `make test` compiles and runs Swift Testing logic tests (macOS 14 or later).
 - `make setup-signing` creates a persistent local code-signing identity in the login Keychain.
-- `make clean` removes build outputs but preserves signing state; `make build-dmg` creates an unsigned distributable DMG.
+- `make clean` removes build outputs but preserves signing state; `make build-dmg` creates an ad-hoc signed app in an unnotarized distributable DMG.
 
 Use macOS 13 or later and Xcode Command Line Tools. Consult `README.md` before deploying with `make deploy`.
 
@@ -28,7 +28,7 @@ Add focused `@Test` cases with `#expect` in a matching `*Tests.swift` file for l
 ```sh
 make test
 codesign --verify --strict build/vindustilpasser.app
-hdiutil verify build/vindustilpasser.dmg
+hdiutil verify "build/vindustilpasser-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist).dmg"
 ```
 
 Build both artifacts first. Manually check window control and Accessibility access on left/right and stacked displays, alternate Dock positions, size-constrained apps, and keyboard-layout changes. Describe manual checks in the pull request.

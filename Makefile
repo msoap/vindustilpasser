@@ -51,9 +51,9 @@ build-dmg:
 	rm -rf build/dmg-stage "$(DMG)"
 	mkdir -p "build/dmg-stage/$(APP).app/Contents/MacOS" "build/dmg-stage/$(APP).app/Contents/Resources"
 	cp "$$(swift build -c release --build-system native --show-bin-path)/$(APP)" "build/dmg-stage/$(APP).app/Contents/MacOS/$(APP)"
-	codesign --remove-signature "build/dmg-stage/$(APP).app/Contents/MacOS/$(APP)"
 	cp Resources/Info.plist "build/dmg-stage/$(APP).app/Contents/Info.plist"
 	@if [ -f Resources/AppIcon.icns ]; then cp Resources/AppIcon.icns "build/dmg-stage/$(APP).app/Contents/Resources/"; fi
-	@if codesign -dv "build/dmg-stage/$(APP).app" >/dev/null 2>&1; then echo 'ERROR: staged app is signed'; exit 1; fi
+	codesign --force --sign - -i "$(BUNDLE_ID)" "build/dmg-stage/$(APP).app"
+	codesign --verify --strict --verbose=2 "build/dmg-stage/$(APP).app"
 	hdiutil create -volname "$(APP)" -srcfolder build/dmg-stage -ov -format UDZO "$(DMG)"
-	@echo 'Built unsigned $(DMG)'
+	@echo 'Built ad-hoc signed $(DMG)'

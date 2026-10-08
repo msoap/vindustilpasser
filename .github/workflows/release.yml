@@ -1,0 +1,101 @@
+name: Release DMGs
+
+'on':
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }} DMG
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    env:
+      DEVELOPER_DIR: /Library/Developer/CommandLineTools
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check tag and app version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-beta-[0-9]{3})?$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          tag_version="${RELEASE_TAG#v}"
+          tag_version="${tag_version%%-beta-*}"
+          app_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+          if [[ "$app_version" != "$tag_version" ]]; then
+            echo "Tag $RELEASE_TAG does not match app version $app_version" >&2
+            exit 1
+          fi
+
+      - name: Test and build DMG
+        run: |
+          make test
+          make build-dmg
+
+      - name: Verify and name DMG
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          release_version="${RELEASE_TAG#v}"
+          app_version="${release_version%%-beta-*}"
+          app=build/dmg-stage/vindustilpasser.app
+          dmg="build/vindustilpasser-${app_version}.dmg"
+          codesign --verify --strict --verbose=2 "$app"
+          actual_arch=$(lipo -archs "$app/Contents/MacOS/vindustilpasser")
+          if [[ "$actual_arch" != "$EXPECTED_ARCH" ]]; then
+            echo "Expected $EXPECTED_ARCH binary, found $actual_arch" >&2
+            exit 1
+          fi
+          hdiutil verify "$dmg"
+          mv "$dmg" "build/vindustilpasser-${release_version}-${EXPECTED_ARCH}.dmg"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dmg-${{ matrix.arch }}
+          path: build/vindustilpasser-*.dmg
+          if-no-files-found: error
+          compression-level: 0
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: dmg-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release with both DMGs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          release_version="${RELEASE_TAG#v}"
+          test -f "dist/vindustilpasser-${release_version}-arm64.dmg"
+          test -f "dist/vindustilpasser-${release_version}-x86_64.dmg"
+          flags=()
+          if [[ "$RELEASE_TAG" == *-beta-* ]]; then
+            flags+=(--prerelease --latest=false)
+          fi
+          gh release create "$RELEASE_TAG" dist/*.dmg \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --generate-notes --title "$RELEASE_TAG" \
+            --notes 'These apps are ad-hoc signed and not notarized. If macOS blocks opening the app, use System Settings > Privacy & Security > Open Anyway after copying it to Applications.' \
+            "${flags[@]}"
