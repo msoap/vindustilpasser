@@ -6,16 +6,16 @@
 	<string>vindustilpasser</string>
 	<key>CFBundleExecutable</key>
 	<string>vindustilpasser</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.local.vindustilpasser</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.local.vindustilpasser</string>
 	<key>CFBundleName</key>
 	<string>vindustilpasser</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2.0</string>
+	<string>1.2.1</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
