@@ -1,10 +1,13 @@
 APP := vindustilpasser
 BUNDLE := build/$(APP).app
 BUNDLE_ID := com.local.vindustilpasser
+ICON_SVG := Resources/AppIcon.svg
+ICON_ICNS := Resources/AppIcon.icns
+ICONSET := build/AppIcon.iconset
 APP_VERSION := $(shell /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
 DMG := build/$(APP)-$(APP_VERSION).dmg
 
-.PHONY: build build-unsigned assemble-app clean deploy build-dmg test setup-signing new-version inc-patch-version inc-minor-version inc-major-version
+.PHONY: build build-unsigned assemble-app clean deploy build-dmg icon test setup-signing new-version inc-patch-version inc-minor-version inc-major-version
 
 new-version:
 	@./scripts/update-version.sh set
@@ -20,6 +23,16 @@ inc-major-version:
 
 setup-signing:
 	./scripts/setup-local-signing.sh
+
+icon:
+	@command -v rsvg-convert >/dev/null || { echo 'rsvg-convert is required to regenerate the icon (brew install librsvg)' >&2; exit 1; }
+	mkdir -p "$(ICONSET)"
+	@set -eu; for size in 16 32 128 256 512; do \
+		rsvg-convert -w "$$size" -h "$$size" "$(ICON_SVG)" -o "$(ICONSET)/icon_$${size}x$${size}.png"; \
+		double=$$((size * 2)); \
+		rsvg-convert -w "$$double" -h "$$double" "$(ICON_SVG)" -o "$(ICONSET)/icon_$${size}x$${size}@2x.png"; \
+	done
+	iconutil -c icns -o "$(ICON_ICNS)" "$(ICONSET)"
 
 test:
 	mkdir -p build
@@ -38,7 +51,7 @@ assemble-app:
 	mkdir -p "$(BUNDLE)/Contents/MacOS" "$(BUNDLE)/Contents/Resources"
 	cp "$$(swift build -c release --build-system native --show-bin-path)/$(APP)" "$(BUNDLE)/Contents/MacOS/$(APP)"
 	cp Resources/Info.plist "$(BUNDLE)/Contents/Info.plist"
-	@if [ -f Resources/AppIcon.icns ]; then cp Resources/AppIcon.icns "$(BUNDLE)/Contents/Resources/"; fi
+	cp "$(ICON_ICNS)" "$(BUNDLE)/Contents/Resources/"
 
 build-unsigned: assemble-app
 	codesign --force --sign - -i "$(BUNDLE_ID)" "$(BUNDLE)"
@@ -60,12 +73,25 @@ deploy: build
 
 build-dmg:
 	swift build -c release --build-system native --product $(APP)
-	rm -rf build/dmg-stage "$(DMG)"
+	rm -rf build/dmg-stage
+	rm -f build/dmg-working.dmg "$(DMG)"
 	mkdir -p "build/dmg-stage/$(APP).app/Contents/MacOS" "build/dmg-stage/$(APP).app/Contents/Resources"
 	cp "$$(swift build -c release --build-system native --show-bin-path)/$(APP)" "build/dmg-stage/$(APP).app/Contents/MacOS/$(APP)"
 	cp Resources/Info.plist "build/dmg-stage/$(APP).app/Contents/Info.plist"
-	@if [ -f Resources/AppIcon.icns ]; then cp Resources/AppIcon.icns "build/dmg-stage/$(APP).app/Contents/Resources/"; fi
+	cp "$(ICON_ICNS)" "build/dmg-stage/$(APP).app/Contents/Resources/"
 	codesign --force --sign - -i "$(BUNDLE_ID)" "build/dmg-stage/$(APP).app"
 	codesign --verify --strict --verbose=2 "build/dmg-stage/$(APP).app"
-	hdiutil create -volname "$(APP)" -srcfolder build/dmg-stage -ov -format UDZO "$(DMG)"
+	cp "$(ICON_ICNS)" build/dmg-stage/.VolumeIcon.icns
+	hdiutil create -volname "$(APP)" -srcfolder build/dmg-stage -format UDRW build/dmg-working.dmg
+	@set -eu; \
+		mountpoint=$$(mktemp -d "$${TMPDIR:-/tmp}/vindustilpasser-dmg.XXXXXX"); \
+		trap 'hdiutil detach "$$mountpoint" >/dev/null 2>&1 || true; rmdir "$$mountpoint" >/dev/null 2>&1 || true' EXIT; \
+		hdiutil attach -nobrowse -readwrite -mountpoint "$$mountpoint" build/dmg-working.dmg; \
+		SetFile -a C "$$mountpoint"; \
+		if [ "$$(GetFileInfo -a "$$mountpoint" | cut -c 6)" != C ]; then echo 'Failed to set DMG volume icon' >&2; exit 1; fi; \
+		hdiutil detach "$$mountpoint"; \
+		rmdir "$$mountpoint"; \
+		trap - EXIT
+	hdiutil convert build/dmg-working.dmg -format UDZO -o "$(DMG)"
+	rm -f build/dmg-working.dmg
 	@echo 'Built ad-hoc signed $(DMG)'

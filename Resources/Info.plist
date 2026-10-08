@@ -8,6 +8,8 @@
 	<string>vindustilpasser</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.local.vindustilpasser</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon.icns</string>
 	<key>CFBundleName</key>
 	<string>vindustilpasser</string>
 	<key>CFBundlePackageType</key>

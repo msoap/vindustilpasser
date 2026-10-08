@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Grid highlight</title>
+  <desc id="description">Four lime tiles form a selected window within a nine-tile grid.</desc>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#264B66"/>
+      <stop offset="1" stop-color="#17213E"/>
+    </linearGradient>
+    <linearGradient id="active" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#E4F9A0"/>
+      <stop offset="1" stop-color="#78D9A7"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="22"/>
+      <feOffset dy="23"/>
+      <feComponentTransfer><feFuncA type="linear" slope=".24"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="205" fill="url(#tile)"/>
+  <g filter="url(#shadow)">
+    <g fill="#52798A">
+      <rect x="255" y="255" width="156" height="156" rx="28"/>
+      <rect x="433" y="255" width="156" height="156" rx="28"/>
+      <rect x="611" y="255" width="156" height="156" rx="28"/>
+      <rect x="255" y="433" width="156" height="156" rx="28"/>
+      <rect x="255" y="611" width="156" height="156" rx="28"/>
+    </g>
+    <g fill="url(#active)">
+      <rect x="433" y="433" width="156" height="156" rx="28"/>
+      <rect x="611" y="433" width="156" height="156" rx="28"/>
+      <rect x="433" y="611" width="156" height="156" rx="28"/>
+      <rect x="611" y="611" width="156" height="156" rx="28"/>
+    </g>
+  </g>
+  <rect x="424" y="424" width="352" height="352" rx="37" fill="none" stroke="#FFFFFF" stroke-width="11"/>
+</svg>
