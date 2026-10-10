@@ -41,4 +41,13 @@ struct GridGeometryTests {
         #expect(grid.initialSelection(for: half, in: frame) == GridSelection(x: 0, y: 0, width: 8, height: 16))
         #expect(grid.initialSelection(for: .zero, in: frame) == GridSelection(x: 0, y: 0, width: 16, height: 16))
     }
+
+    @Test func selectionSizeUsesVisibleGridUnits() {
+        let selection = GridSelection(x: 0, y: 0, width: 20, height: 12)
+        #expect(selection.sizeLabel(fine: false) == "10×6")
+        #expect(selection.sizeLabel(fine: true) == "20×12")
+        let halfCells = GridSelection(x: 1, y: 1, width: 5, height: 3)
+        #expect(halfCells.sizeLabel(fine: false) == "2.5×1.5")
+        #expect(halfCells.sizeLabel(fine: true) == "5×3")
+    }
 }

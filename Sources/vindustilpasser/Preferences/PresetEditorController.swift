@@ -17,7 +17,8 @@ private final class PresetEditorWindow: NSWindow {
 @MainActor
 final class PresetEditorController: NSWindowController, NSWindowDelegate {
     private let nameField = NSTextField()
-    private let scope = NSPopUpButton()
+    private let globalScopeButton = NSButton(radioButtonWithTitle: "Global", target: nil, action: nil)
+    private let localScopeButton = NSButton(radioButtonWithTitle: "Local", target: nil, action: nil)
     private let recorder = HotKeyRecorderView()
     private let grid = GridView()
     private let fineCheckbox = NSButton(checkboxWithTitle: "Fine grid", target: nil, action: nil)
@@ -40,11 +41,17 @@ final class PresetEditorController: NSWindowController, NSWindowDelegate {
         nameField.stringValue = preset.name ?? ""
         content.addSubview(label("Name", x: 20, y: 393))
         content.addSubview(nameField)
-        scope.addItems(withTitles: ["Global", "Local"])
-        scope.selectItem(at: preset.scope == .global ? 0 : 1)
-        scope.frame = CGRect(x: 110, y: 350, width: 140, height: 28)
         content.addSubview(label("Scope", x: 20, y: 354))
-        content.addSubview(scope)
+        globalScopeButton.frame = CGRect(x: 110, y: 350, width: 90, height: 28)
+        globalScopeButton.target = self
+        globalScopeButton.action = #selector(selectScope)
+        globalScopeButton.state = preset.scope == .global ? .on : .off
+        content.addSubview(globalScopeButton)
+        localScopeButton.frame = CGRect(x: 205, y: 350, width: 90, height: 28)
+        localScopeButton.target = self
+        localScopeButton.action = #selector(selectScope)
+        localScopeButton.state = preset.scope == .local ? .on : .off
+        content.addSubview(localScopeButton)
         recorder.hotKey = preset.hotKey
         recorder.frame = CGRect(x: 110, y: 312, width: 170, height: 28)
         content.addSubview(label("Shortcut", x: 20, y: 316))
@@ -91,10 +98,15 @@ final class PresetEditorController: NSWindowController, NSWindowDelegate {
 
     @objc private func toggleFine() { grid.fineMode = fineCheckbox.state == .on }
 
+    @objc private func selectScope(_ sender: NSButton) {
+        globalScopeButton.state = sender === globalScopeButton ? .on : .off
+        localScopeButton.state = sender === localScopeButton ? .on : .off
+    }
+
     @objc private func savePreset() {
         var updated = preset
         updated.name = nameField.stringValue.isEmpty ? nil : nameField.stringValue
-        updated.scope = scope.indexOfSelectedItem == 0 ? .global : .local
+        updated.scope = globalScopeButton.state == .on ? .global : .local
         updated.hotKey = recorder.hotKey
         let selection = grid.selection
         if selection.x % 2 == 0 && selection.y % 2 == 0 && selection.width % 2 == 0 && selection.height % 2 == 0 {

@@ -42,7 +42,7 @@ final class GridPanelController {
             geometry.initialSelection(for: ScreenGeometry.appKitRect(fromAX: $0.originalAXFrame),
                                       in: screen.visibleFrame)
         } ?? GridSelection(x: 0, y: 0, width: geometry.fineColumns, height: geometry.fineRows)
-        gridView.fineMode = false
+        gridView.fineMode = NSEvent.modifierFlags.contains(.option)
         let panelWidth: CGFloat = 352
         let horizontalInset: CGFloat = 14
         let headerHeight: CGFloat = 43
@@ -224,7 +224,7 @@ final class GridPanelController {
 
     private func updateHint() {
         let selection = gridView.selection
-        hintLabel.stringValue = "\(settings.general.saveWindowHotKey.label) Save  ·  \(settings.general.restoreWindowHotKey.label) Restore  ·  ↵ Apply  ·  \(selection.width)×\(selection.height)"
+        hintLabel.stringValue = "\(settings.general.saveWindowHotKey.label) Save  ·  \(settings.general.restoreWindowHotKey.label) Restore  ·  ↵ Apply  ·  \(selection.sizeLabel(fine: gridView.fineMode))"
     }
 
     private func applySelection() {
