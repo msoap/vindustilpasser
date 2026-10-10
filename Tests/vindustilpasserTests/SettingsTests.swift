@@ -86,4 +86,41 @@ struct SettingsTests {
         settings.presets[2].hotKey = left
         #expect(throws: SettingsError.self) { try settings.validate() }
     }
+
+    @Test func oldSettingsKeepPresetsWhenDefaultSaveShortcutConflicts() throws {
+        var settings = AppSettings.defaults
+        settings.presets.append(WindowPreset(id: UUID(), name: "Save slot", scope: .local,
+                                             hotKey: AppSettings.defaultSaveHotKey,
+                                             area: settings.presets[0].area))
+        var object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(settings)) as? [String: Any])
+        var general = try #require(object["general"] as? [String: Any])
+        general.removeValue(forKey: "saveWindowHotKey")
+        general.removeValue(forKey: "restoreWindowHotKey")
+        object["general"] = general
+        object.removeValue(forKey: "savedWindows")
+        let migrated = try SettingsMigration.decode(JSONSerialization.data(withJSONObject: object))
+        #expect(migrated.presets.count == 2)
+        #expect(migrated.savedWindows.isEmpty)
+        #expect(migrated.general.saveWindowHotKey != AppSettings.defaultSaveHotKey)
+        #expect(migrated.general.restoreWindowHotKey == AppSettings.defaultRestoreHotKey)
+    }
+
+    @Test func savedWindowsRoundTripAndMatchOnlyTheirDisplayResolution() throws {
+        var settings = AppSettings.defaults
+        let identity = SavedWindow.Identity(bundleID: "com.example.Editor", kind: .document,
+                                            value: "file:///tmp/example.txt")
+        let saved = SavedWindow(id: UUID(), identity: identity, applicationName: "Editor",
+                                windowName: "example.txt", displayName: "Studio Display",
+                                displayUUID: "monitor-one",
+                                pixelWidth: 3840, pixelHeight: 2160,
+                                x: 31.5, y: 42.25, width: 900.5, height: 600.75)
+        settings.savedWindows = [saved]
+        let decoded = try SettingsMigration.decode(JSONEncoder().encode(settings))
+        #expect(decoded.savedWindows == [saved])
+        #expect(saved.matches(identity, displayUUID: "monitor-one", pixelWidth: 3840, pixelHeight: 2160))
+        #expect(!saved.matches(identity, displayUUID: "monitor-two", pixelWidth: 3840, pixelHeight: 2160))
+        #expect(!saved.matches(identity, displayUUID: "monitor-one", pixelWidth: 2560, pixelHeight: 1440))
+        settings.savedWindows.append(saved)
+        #expect(throws: SettingsError.self) { try settings.validate() }
+    }
 }

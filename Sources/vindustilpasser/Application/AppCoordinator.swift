@@ -23,6 +23,8 @@ final class AppCoordinator {
         settings = settingsStore.load()
         panel.onApply = { [weak self] selection in self?.apply(selection: selection) }
         panel.onPreset = { [weak self] id in self?.applyPreset(id: id) }
+        panel.onSaveWindow = { [weak self] in self?.saveWindow() }
+        panel.onRestoreWindow = { [weak self] in self?.restoreWindow() }
         panel.onSettings = { [weak self] in self?.openSettings() }
         panel.onQuit = { [weak self] in self?.quit() }
         panel.onCancel = { [weak self] in self?.stopWatchingWindow() }
@@ -71,7 +73,8 @@ final class AppCoordinator {
             ?? statusItem.screen ?? NSScreen.main else { return }
         let application = target?.application ?? tracker.current().flatMap { $0.isTerminated ? nil : $0 }
         panel.ignoredClickWindow = statusItem.window
-        panel.show(target: target, application: application, screen: screen, settings: settings)
+        panel.show(target: target, application: application, screen: screen, settings: settings,
+                   restoreAvailable: target.map { hasSavedFrame(for: $0) } ?? false)
         watchWindow(in: application)
     }
 
@@ -142,6 +145,82 @@ final class AppCoordinator {
         } catch { showError(error) }
     }
 
+    private func saveWindow() {
+        do {
+            let target = try currentPanelTarget()
+            let identity = try windowManager.identity(for: target)
+            let frame = ScreenGeometry.appKitRect(fromAX: try AXHelpers.frame(target.axWindow))
+            guard let screen = ScreenGeometry.screen(for: frame),
+                  let displayID = ScreenGeometry.displayID(for: screen),
+                  let displayUUID = ScreenGeometry.displayUUID(for: displayID) else {
+                throw WindowOperationError.noWindow
+            }
+            let resolution = (CGDisplayPixelsWide(displayID), CGDisplayPixelsHigh(displayID))
+            let title = (AXHelpers.optionalAttribute(target.axWindow, kAXTitleAttribute as CFString) as? String)
+                .flatMap { $0.isEmpty ? nil : $0 } ?? "Untitled window"
+            var updated = settings
+            let existing = updated.savedWindows.firstIndex {
+                $0.matches(identity, displayUUID: displayUUID, pixelWidth: resolution.0, pixelHeight: resolution.1)
+            }
+            let saved = SavedWindow(id: existing.map { updated.savedWindows[$0].id } ?? UUID(),
+                                    identity: identity,
+                                    applicationName: target.application.localizedName ?? identity.bundleID,
+                                    windowName: title, displayName: screen.localizedName,
+                                    displayUUID: displayUUID,
+                                    pixelWidth: resolution.0, pixelHeight: resolution.1,
+                                    x: frame.minX - screen.frame.minX, y: frame.minY - screen.frame.minY,
+                                    width: frame.width, height: frame.height)
+            if let existing { updated.savedWindows[existing] = saved }
+            else { updated.savedWindows.append(saved) }
+            try updateSettings(updated)
+            preferences?.syncSavedWindows(updated.savedWindows)
+            panel.setRestoreAvailable(true)
+            panel.showError("Saved window position and size.")
+        } catch { showError(error) }
+    }
+
+    private func hasSavedFrame(for target: WindowTarget) -> Bool {
+        guard let identity = try? windowManager.identity(for: target),
+              let frame = try? AXHelpers.frame(target.axWindow),
+              let screen = ScreenGeometry.screen(for: ScreenGeometry.appKitRect(fromAX: frame)),
+              let displayID = ScreenGeometry.displayID(for: screen),
+              let displayUUID = ScreenGeometry.displayUUID(for: displayID) else { return false }
+        return settings.savedWindows.contains {
+            $0.matches(identity, displayUUID: displayUUID,
+                       pixelWidth: CGDisplayPixelsWide(displayID), pixelHeight: CGDisplayPixelsHigh(displayID))
+        }
+    }
+
+    private func restoreWindow() {
+        do {
+            let target = try currentPanelTarget()
+            let identity = try windowManager.identity(for: target)
+            let current = ScreenGeometry.appKitRect(fromAX: try AXHelpers.frame(target.axWindow))
+            guard let screen = ScreenGeometry.screen(for: current),
+                  let displayID = ScreenGeometry.displayID(for: screen),
+                  let displayUUID = ScreenGeometry.displayUUID(for: displayID) else {
+                throw WindowOperationError.noWindow
+            }
+            let resolution = (CGDisplayPixelsWide(displayID), CGDisplayPixelsHigh(displayID))
+            guard let saved = settings.savedWindows.first(where: {
+                $0.matches(identity, displayUUID: displayUUID, pixelWidth: resolution.0, pixelHeight: resolution.1)
+            }) else { throw WindowOperationError.noSavedWindow }
+            let frame = CGRect(x: screen.frame.minX + saved.x, y: screen.frame.minY + saved.y,
+                               width: saved.width, height: saved.height)
+            try windowManager.apply(appKitRect: frame, to: target)
+            panel.cancel()
+        } catch { showError(error) }
+    }
+
+    private func currentPanelTarget() throws -> WindowTarget {
+        guard let target = panel.target else { throw WindowOperationError.noWindow }
+        let current = try windowManager.captureTarget(application: target.application)
+        guard current.pid == target.pid, CFEqual(current.axWindow, target.axWindow) else {
+            throw WindowOperationError.targetChanged
+        }
+        return target
+    }
+
     func openSettings() {
         let screen = auxiliaryWindowScreen()
         panel.cancel()
@@ -150,6 +229,7 @@ final class AppCoordinator {
                 try self?.updateSettings(updated)
             })
         }
+        preferences?.syncSavedWindows(settings.savedWindows)
         if let window = preferences?.window, let screen { place(window, on: screen) }
         if let sheet = preferences?.window?.attachedSheet {
             sheet.makeKeyAndOrderFront(nil)

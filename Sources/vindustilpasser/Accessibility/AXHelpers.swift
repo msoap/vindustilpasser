@@ -2,7 +2,7 @@ import ApplicationServices
 
 enum WindowOperationError: LocalizedError {
     case accessibilityDenied, applicationUnavailable, noWindow, targetGone, minimized, nativeFullScreen
-    case positionNotSettable, sizeNotSettable
+    case positionNotSettable, sizeNotSettable, unidentifiedWindow, ambiguousWindow, noSavedWindow, targetChanged
     case axError(AXError)
 
     var requiresAlert: Bool {
@@ -22,6 +22,10 @@ enum WindowOperationError: LocalizedError {
         case .nativeFullScreen: "Leave native fullscreen before resizing this window."
         case .positionNotSettable: "This window cannot be moved."
         case .sizeNotSettable: "This window cannot be resized."
+        case .unidentifiedWindow: "This app does not expose a persistent identity for this window."
+        case .ambiguousWindow: "This app has multiple windows with the same identity."
+        case .noSavedWindow: "No saved position exists for this window on this display and resolution."
+        case .targetChanged: "The active window changed. Open the panel again for the new window."
         case .axError(let error): "Accessibility error \(error.rawValue)."
         }
     }

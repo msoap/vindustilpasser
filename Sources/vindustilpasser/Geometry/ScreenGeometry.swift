@@ -1,4 +1,5 @@
 import AppKit
+import ColorSync
 
 enum ScreenGeometry {
     static func primaryScreen(in screens: [NSScreen] = NSScreen.screens) -> NSScreen? {
@@ -7,6 +8,11 @@ enum ScreenGeometry {
 
     static func displayID(for screen: NSScreen) -> CGDirectDisplayID? {
         (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
+    }
+
+    static func displayUUID(for displayID: CGDirectDisplayID) -> String? {
+        guard let uuid = CGDisplayCreateUUIDFromDisplayID(displayID) else { return nil }
+        return CFUUIDCreateString(nil, uuid.takeRetainedValue()) as String
     }
 
     static func appKitRect(fromAX rect: CGRect, primaryFrame: CGRect) -> CGRect {

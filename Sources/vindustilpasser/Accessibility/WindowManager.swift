@@ -9,6 +9,38 @@ final class WindowManager {
 
     init(tracker: ExternalApplicationTracker) { self.tracker = tracker }
 
+    func identity(for target: WindowTarget) throws -> SavedWindow.Identity {
+        guard let bundleID = target.application.bundleIdentifier, !bundleID.isEmpty else {
+            throw WindowOperationError.unidentifiedWindow
+        }
+        guard let identity = windowIdentity(target.axWindow, bundleID: bundleID) else {
+            throw WindowOperationError.unidentifiedWindow
+        }
+        let appElement = AXUIElementCreateApplication(target.pid)
+        guard let windows = AXHelpers.optionalAttribute(appElement, kAXWindowsAttribute as CFString) as? [AXUIElement] else {
+            throw WindowOperationError.unidentifiedWindow
+        }
+        let duplicates = windows.filter { window in
+            windowIdentity(window, bundleID: bundleID) == identity
+        }
+        guard duplicates.count == 1, CFEqual(duplicates[0], target.axWindow) else {
+            throw WindowOperationError.ambiguousWindow
+        }
+        return identity
+    }
+
+    private func windowIdentity(_ window: AXUIElement, bundleID: String) -> SavedWindow.Identity? {
+        if let document = AXHelpers.optionalAttribute(window, kAXDocumentAttribute as CFString) as? String,
+           !document.isEmpty {
+            return SavedWindow.Identity(bundleID: bundleID, kind: .document, value: document)
+        }
+        if let identifier = AXHelpers.optionalAttribute(window, kAXIdentifierAttribute as CFString) as? String,
+           !identifier.isEmpty {
+            return SavedWindow.Identity(bundleID: bundleID, kind: .accessibilityIdentifier, value: identifier)
+        }
+        return nil
+    }
+
     func captureTarget(application requestedApplication: NSRunningApplication? = nil) throws -> WindowTarget {
         try AccessibilityPermission.require()
         guard let application = requestedApplication ?? tracker.current(), !application.isTerminated,

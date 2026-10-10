@@ -11,6 +11,7 @@ final class GridPanelController {
     private var keyObserver: NSObjectProtocol?
     private let gridView = GridView()
     private let titleLabel = NSTextField(labelWithString: "")
+    private let restoreButton = NSButton(title: "Restore", target: nil, action: nil)
     private let hintLabel = NSTextField(labelWithString: "")
     private let errorLabel = NSTextField(labelWithString: "")
     private let iconView = NSImageView()
@@ -21,6 +22,8 @@ final class GridPanelController {
 
     var onApply: ((GridSelection) -> Void)?
     var onPreset: ((UUID) -> Void)?
+    var onSaveWindow: (() -> Void)?
+    var onRestoreWindow: (() -> Void)?
     var onSettings: (() -> Void)?
     var onQuit: (() -> Void)?
     var onCancel: (() -> Void)?
@@ -28,7 +31,8 @@ final class GridPanelController {
 
     var isVisible: Bool { panel?.isVisible == true }
 
-    func show(target: WindowTarget?, application: NSRunningApplication?, screen: NSScreen, settings: AppSettings) {
+    func show(target: WindowTarget?, application: NSRunningApplication?, screen: NSScreen,
+              settings: AppSettings, restoreAvailable: Bool) {
         cancel()
         self.target = target
         self.settings = settings
@@ -74,8 +78,22 @@ final class GridPanelController {
         titleLabel.stringValue = target == nil ? "No active window" : application?.localizedName ?? "Window"
         titleLabel.font = .boldSystemFont(ofSize: 14)
         titleLabel.frame = CGRect(x: horizontalInset + 34, y: headerBottom + (headerHeight - 22) / 2,
-                                  width: panelWidth - horizontalInset * 2 - 34, height: 22)
+                                  width: panelWidth - horizontalInset * 2 - 133, height: 22)
+        titleLabel.lineBreakMode = .byTruncatingTail
         visual.addSubview(titleLabel)
+        restoreButton.font = .systemFont(ofSize: 11, weight: .semibold)
+        restoreButton.image = NSImage(systemSymbolName: "arrow.uturn.backward", accessibilityDescription: nil)
+        restoreButton.imagePosition = .imageLeading
+        restoreButton.contentTintColor = .systemGreen
+        restoreButton.bezelStyle = .rounded
+        restoreButton.frame = CGRect(x: panelWidth - horizontalInset - 96,
+                                     y: headerBottom + (headerHeight - 26) / 2,
+                                     width: 96, height: 26)
+        restoreButton.target = self
+        restoreButton.action = #selector(restoreFromButton)
+        restoreButton.setAccessibilityLabel("Restore saved window position and size")
+        restoreButton.isHidden = !restoreAvailable
+        visual.addSubview(restoreButton)
         gridView.frame = CGRect(x: horizontalInset, y: footerHeight,
                                 width: panelWidth - horizontalInset * 2, height: gridHeight)
         visual.addSubview(gridView)
@@ -170,6 +188,12 @@ final class GridPanelController {
         RunLoop.main.add(timer, forMode: .common)
     }
 
+    func setRestoreAvailable(_ available: Bool) {
+        restoreButton.isHidden = !available
+    }
+
+    @objc private func restoreFromButton() { onRestoreWindow?() }
+
     private func clearError() {
         errorTimer = nil
         errorLabel.isHidden = true
@@ -179,7 +203,7 @@ final class GridPanelController {
     private func setErrorExpanded(_ expanded: Bool) {
         guard let panel, let visual = panel.contentView as? NSVisualEffectView else { return }
         let offset = expanded ? errorHeight : -errorHeight
-        for view in [iconView, titleLabel, gridView, hintLabel] {
+        for view in [iconView, titleLabel, restoreButton, gridView, hintLabel] {
             view.frame.origin.y += offset
         }
         var frame = panel.frame
@@ -200,7 +224,7 @@ final class GridPanelController {
 
     private func updateHint() {
         let selection = gridView.selection
-        hintLabel.stringValue = "\(gridView.fineMode ? "⌥ Fine" : "⌥ Fine grid")  ·  ⇧ Arrows resize  ·  ↵ Apply  ·  \(selection.width)×\(selection.height)"
+        hintLabel.stringValue = "\(settings.general.saveWindowHotKey.label) Save  ·  \(settings.general.restoreWindowHotKey.label) Restore  ·  ↵ Apply  ·  \(selection.width)×\(selection.height)"
     }
 
     private func applySelection() {
@@ -216,6 +240,9 @@ final class GridPanelController {
         }
         let modifiers = HotKeyModifiers(flags: event.modifierFlags.intersection(.deviceIndependentFlagsMask))
         let code = UInt32(event.keyCode)
+        let pressed = HotKey(keyCode: code, modifiers: modifiers, displayKey: nil)
+        if pressed == settings.general.saveWindowHotKey { onSaveWindow?(); return true }
+        if pressed == settings.general.restoreWindowHotKey { onRestoreWindow?(); return true }
         if modifiers.contains(.command) {
             if code == UInt32(kVK_ANSI_Comma) { onSettings?(); return true }
             if code == UInt32(kVK_ANSI_Q) { onQuit?(); return true }
