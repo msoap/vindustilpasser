@@ -43,6 +43,7 @@ test:
 		Sources/vindustilpasser/HotKeys/HotKeyRecorderView.swift Sources/vindustilpasser/Accessibility/AXHelpers.swift \
 		Sources/vindustilpasser/Accessibility/WindowFrameApplication.swift \
 		Sources/vindustilpasser/Preferences/PresetTableView.swift \
+		Sources/vindustilpasser/Preferences/SavedWindowTableView.swift \
 		Sources/vindustilpasser/Settings/*.swift Tests/vindustilpasserTests/*.swift
 	DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib build/vindustilpasserTests
 

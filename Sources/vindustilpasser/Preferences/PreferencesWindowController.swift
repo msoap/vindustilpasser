@@ -19,7 +19,7 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
     private let rowsField = NSTextField()
     private let gridPreview = GridView()
     private let table = PresetTableView()
-    private let savedTable = NSTableView()
+    private let savedTable = SavedWindowTableView()
     private var presetEditor: PresetEditorController?
 
     init(settings: AppSettings, onChange: @escaping (AppSettings) throws -> Void) {
@@ -206,6 +206,7 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
         savedTable.dataSource = self
         savedTable.delegate = self
         savedTable.rowHeight = 28
+        savedTable.onDelete = { [weak self] in self?.deleteSavedWindow() }
         scroll.documentView = savedTable
         view.addSubview(scroll)
         let remove = NSButton(title: "−", target: self, action: #selector(deleteSavedWindow))
