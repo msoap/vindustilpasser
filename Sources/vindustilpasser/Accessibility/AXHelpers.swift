@@ -5,6 +5,13 @@ enum WindowOperationError: LocalizedError {
     case positionNotSettable, sizeNotSettable
     case axError(AXError)
 
+    var requiresAlert: Bool {
+        switch self {
+        case .accessibilityDenied, .axError: true
+        default: false
+        }
+    }
+
     var errorDescription: String? {
         switch self {
         case .accessibilityDenied: "Grant Accessibility access in System Settings, then try again."

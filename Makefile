@@ -40,7 +40,8 @@ test:
 		-Xlinker -rpath -Xlinker /Library/Developer/CommandLineTools/Library/Developer/Frameworks \
 		-o build/vindustilpasserTests \
 		Sources/vindustilpasser/Geometry/*.swift Sources/vindustilpasser/HotKeys/HotKey.swift \
-		Sources/vindustilpasser/HotKeys/HotKeyRecorderView.swift Sources/vindustilpasser/Accessibility/WindowFrameApplication.swift \
+		Sources/vindustilpasser/HotKeys/HotKeyRecorderView.swift Sources/vindustilpasser/Accessibility/AXHelpers.swift \
+		Sources/vindustilpasser/Accessibility/WindowFrameApplication.swift \
 		Sources/vindustilpasser/Preferences/PresetTableView.swift \
 		Sources/vindustilpasser/Settings/*.swift Tests/vindustilpasserTests/*.swift
 	DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib build/vindustilpasserTests

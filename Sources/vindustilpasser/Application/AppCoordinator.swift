@@ -17,7 +17,7 @@ final class AppCoordinator {
 
     init() {
         settings = settingsStore.load()
-        panel.onApply = { [weak self] selection, target in self?.apply(selection: selection, target: target) }
+        panel.onApply = { [weak self] selection in self?.apply(selection: selection) }
         panel.onPreset = { [weak self] id in self?.applyPreset(id: id) }
         panel.onSettings = { [weak self] in self?.openSettings() }
         panel.onQuit = { [weak self] in self?.quit() }
@@ -44,14 +44,30 @@ final class AppCoordinator {
 
     func toggleGridPanel() {
         if panel.isVisible { panel.cancel(); return }
-        do { panel.show(target: try windowManager.captureTarget(), settings: settings) }
-        catch { showError(error) }
+        let target: WindowTarget?
+        do { target = try windowManager.captureTarget() }
+        catch {
+            if (error as? WindowOperationError)?.requiresAlert == true {
+                showError(error)
+                return
+            }
+            logger.info("Opened panel without a target: \(error.localizedDescription)")
+            target = nil
+        }
+        guard let screen = target?.screen
+            ?? NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
+            ?? statusItem.screen ?? NSScreen.main else { return }
+        let application = target?.application ?? tracker.current().flatMap { $0.isTerminated ? nil : $0 }
+        panel.show(target: target, application: application, screen: screen, settings: settings)
     }
 
-    private func apply(selection: GridSelection, target: WindowTarget) {
-        let geometry = GridGeometry(columns: settings.grid.columns, rows: settings.grid.rows)
-        let rect = geometry.rect(for: selection, in: target.screen.visibleFrame)
-        apply(rect: rect, target: target)
+    private func apply(selection: GridSelection) {
+        do {
+            let target = try panel.target ?? windowManager.captureTarget()
+            let geometry = GridGeometry(columns: settings.grid.columns, rows: settings.grid.rows)
+            let rect = geometry.rect(for: selection, in: target.screen.visibleFrame)
+            apply(rect: rect, target: target)
+        } catch { showError(error) }
     }
 
     private func apply(rect: CGRect, target: WindowTarget) {
@@ -59,7 +75,6 @@ final class AppCoordinator {
             try windowManager.apply(appKitRect: rect, to: target)
             panel.cancel()
         } catch {
-            panel.cancel()
             showError(error)
         }
     }
@@ -165,6 +180,11 @@ final class AppCoordinator {
 
     private func showError(_ error: Error) {
         logger.error("\(error.localizedDescription)")
+        guard (error as? WindowOperationError)?.requiresAlert == true else {
+            panel.showError(error.localizedDescription)
+            return
+        }
+        panel.cancel()
         let alert = NSAlert()
         alert.messageText = "vindustilpasser"
         alert.informativeText = error.localizedDescription

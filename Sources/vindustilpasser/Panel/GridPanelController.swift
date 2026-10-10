@@ -9,33 +9,39 @@ final class GridPanelController {
     private let gridView = GridView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let hintLabel = NSTextField(labelWithString: "")
+    private let errorLabel = NSTextField(labelWithString: "")
     private let iconView = NSImageView()
     private var settings = AppSettings.defaults
+    private var errorTimer: Timer?
+    private var errorExpanded = false
+    private let errorHeight: CGFloat = 44
 
-    var onApply: ((GridSelection, WindowTarget) -> Void)?
+    var onApply: ((GridSelection) -> Void)?
     var onPreset: ((UUID) -> Void)?
     var onSettings: (() -> Void)?
     var onQuit: (() -> Void)?
 
     var isVisible: Bool { panel?.isVisible == true }
 
-    func show(target: WindowTarget, settings: AppSettings) {
+    func show(target: WindowTarget?, application: NSRunningApplication?, screen: NSScreen, settings: AppSettings) {
         cancel()
         self.target = target
         self.settings = settings
         let geometry = GridGeometry(columns: settings.grid.columns, rows: settings.grid.rows)
         gridView.geometry = geometry
-        gridView.selection = geometry.initialSelection(
-            for: ScreenGeometry.appKitRect(fromAX: target.originalAXFrame), in: target.screen.visibleFrame)
+        gridView.selection = target.map {
+            geometry.initialSelection(for: ScreenGeometry.appKitRect(fromAX: $0.originalAXFrame),
+                                      in: screen.visibleFrame)
+        } ?? GridSelection(x: 0, y: 0, width: geometry.fineColumns, height: geometry.fineRows)
         gridView.fineMode = false
         let panelWidth: CGFloat = 352
         let horizontalInset: CGFloat = 14
         let headerHeight: CGFloat = 43
         let footerHeight: CGFloat = 34
-        let gridHeight = min(264, max(124, panelWidth * target.screen.visibleFrame.height / target.screen.visibleFrame.width))
+        let gridHeight = min(264, max(124, panelWidth * screen.visibleFrame.height / screen.visibleFrame.width))
         let panelHeight = gridHeight + headerHeight + footerHeight
         let headerBottom = footerHeight + gridHeight
-        let visible = target.screen.visibleFrame
+        let visible = screen.visibleFrame
         let frame = CGRect(x: visible.midX - panelWidth / 2, y: visible.midY - panelHeight / 2,
                            width: panelWidth, height: panelHeight)
         let panel = GridPanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
@@ -51,20 +57,16 @@ final class GridPanelController {
         visual.blendingMode = .behindWindow
         visual.state = .active
         visual.alphaValue = 0.9
-        visual.maskImage = NSImage(size: frame.size, flipped: false) { rect in
-            NSColor.white.setFill()
-            NSBezierPath(roundedRect: rect, xRadius: 16, yRadius: 16).fill()
-            return true
-        }
+        visual.maskImage = roundedMask(size: frame.size)
         visual.wantsLayer = true
         visual.layer?.cornerRadius = 16
         visual.layer?.masksToBounds = true
         panel.contentView = visual
-        iconView.image = target.application.icon
+        iconView.image = application?.icon ?? NSImage(systemSymbolName: "macwindow", accessibilityDescription: nil)
         iconView.frame = CGRect(x: horizontalInset, y: headerBottom + (headerHeight - 24) / 2,
                                 width: 24, height: 24)
         visual.addSubview(iconView)
-        titleLabel.stringValue = target.application.localizedName ?? "Window"
+        titleLabel.stringValue = target == nil ? "No active window" : application?.localizedName ?? "Window"
         titleLabel.font = .boldSystemFont(ofSize: 14)
         titleLabel.frame = CGRect(x: horizontalInset + 34, y: headerBottom + (headerHeight - 22) / 2,
                                   width: panelWidth - horizontalInset * 2 - 34, height: 22)
@@ -77,6 +79,16 @@ final class GridPanelController {
         hintLabel.frame = CGRect(x: horizontalInset, y: (footerHeight - 19) / 2,
                                  width: panelWidth - horizontalInset * 2, height: 19)
         visual.addSubview(hintLabel)
+        errorLabel.font = .systemFont(ofSize: 11)
+        errorLabel.textColor = .white
+        errorLabel.alignment = .center
+        errorLabel.lineBreakMode = .byWordWrapping
+        errorLabel.maximumNumberOfLines = 2
+        errorLabel.cell?.wraps = true
+        errorLabel.frame = CGRect(x: horizontalInset, y: 5,
+                                  width: panelWidth - horizontalInset * 2, height: errorHeight - 10)
+        errorLabel.isHidden = true
+        visual.addSubview(errorLabel)
         updateHint()
         gridView.onSelectionChanged = { [weak self] _ in self?.updateHint() }
         gridView.onSelectionCommitted = { [weak self] in self?.applySelection() }
@@ -91,6 +103,10 @@ final class GridPanelController {
     }
 
     func cancel() {
+        errorTimer?.invalidate()
+        errorTimer = nil
+        errorExpanded = false
+        errorLabel.isHidden = true
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
         gridView.resetInteraction()
@@ -102,14 +118,55 @@ final class GridPanelController {
         target = nil
     }
 
+    func showError(_ message: String) {
+        guard isVisible else { return }
+        errorTimer?.invalidate()
+        errorLabel.stringValue = message
+        if !errorExpanded { setErrorExpanded(true) }
+        errorLabel.isHidden = false
+        let timer = Timer(timeInterval: 5, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.clearError() }
+        }
+        errorTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func clearError() {
+        errorTimer = nil
+        errorLabel.isHidden = true
+        if errorExpanded { setErrorExpanded(false) }
+    }
+
+    private func setErrorExpanded(_ expanded: Bool) {
+        guard let panel, let visual = panel.contentView as? NSVisualEffectView else { return }
+        let offset = expanded ? errorHeight : -errorHeight
+        for view in [iconView, titleLabel, gridView, hintLabel] {
+            view.frame.origin.y += offset
+        }
+        var frame = panel.frame
+        frame.origin.y -= offset
+        frame.size.height += offset
+        panel.setFrame(frame, display: true)
+        visual.maskImage = roundedMask(size: frame.size)
+        errorExpanded = expanded
+    }
+
+    private func roundedMask(size: CGSize) -> NSImage {
+        NSImage(size: size, flipped: false) { rect in
+            NSColor.white.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: 16, yRadius: 16).fill()
+            return true
+        }
+    }
+
     private func updateHint() {
         let selection = gridView.selection
         hintLabel.stringValue = "\(gridView.fineMode ? "⌥ Fine" : "⌥ Fine grid")  ·  ⇧ Arrows resize  ·  ↵ Apply  ·  \(selection.width)×\(selection.height)"
     }
 
     private func applySelection() {
-        guard let target, gridView.geometry.valid(gridView.selection) else { return }
-        onApply?(gridView.selection, target)
+        guard gridView.geometry.valid(gridView.selection) else { return }
+        onApply?(gridView.selection)
     }
 
     private func handle(_ event: NSEvent) -> Bool {
