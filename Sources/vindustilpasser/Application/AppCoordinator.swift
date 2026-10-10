@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import os
 
 @MainActor
@@ -13,6 +14,9 @@ final class AppCoordinator {
     private var preferences: PreferencesWindowController?
     private weak var aboutWindow: NSWindow?
     private var commandMonitor: Any?
+    private var activationObserver: NSObjectProtocol?
+    private var focusedWindowObserver: FocusedWindowObserver?
+    private var observedApplication: NSRunningApplication?
     private let logger = Logger(subsystem: "com.local.vindustilpasser", category: "app")
 
     init() {
@@ -21,6 +25,7 @@ final class AppCoordinator {
         panel.onPreset = { [weak self] id in self?.applyPreset(id: id) }
         panel.onSettings = { [weak self] in self?.openSettings() }
         panel.onQuit = { [weak self] in self?.quit() }
+        panel.onCancel = { [weak self] in self?.stopWatchingWindow() }
         hotKeys.onAction = { [weak self] action in
             switch action {
             case .activate: self?.toggleGridPanel()
@@ -38,6 +43,13 @@ final class AppCoordinator {
             guard let self else { return event }
             let handled = MainActor.assumeIsolated { self.handleAppCommand(event) }
             return handled ? nil : event
+        }
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] notification in
+            guard let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  application.processIdentifier != getpid() else { return }
+            MainActor.assumeIsolated { self?.activated(application) }
         }
         logger.info("Started; Accessibility granted: \(AccessibilityPermission.granted)")
     }
@@ -58,7 +70,49 @@ final class AppCoordinator {
             ?? NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
             ?? statusItem.screen ?? NSScreen.main else { return }
         let application = target?.application ?? tracker.current().flatMap { $0.isTerminated ? nil : $0 }
+        panel.ignoredClickWindow = statusItem.window
         panel.show(target: target, application: application, screen: screen, settings: settings)
+        watchWindow(in: application)
+    }
+
+    private func activated(_ application: NSRunningApplication) {
+        guard panel.isVisible else { return }
+        if observedApplication?.processIdentifier != application.processIdentifier {
+            panel.cancel()
+            return
+        }
+        closeIfWindowChanged(in: application)
+    }
+
+    private func watchWindow(in application: NSRunningApplication?) {
+        stopWatchingWindow()
+        guard let application, !application.isTerminated else { return }
+        observedApplication = application
+        focusedWindowObserver = FocusedWindowObserver(pid: application.processIdentifier) { [weak self, pid = application.processIdentifier] in
+            guard let self, self.panel.isVisible, self.observedApplication?.processIdentifier == pid,
+                  let application = self.observedApplication else { return }
+            self.closeIfWindowChanged(in: application)
+        }
+        if focusedWindowObserver == nil {
+            logger.debug("Focused-window notifications unavailable for PID \(application.processIdentifier)")
+        }
+    }
+
+    private func stopWatchingWindow() {
+        focusedWindowObserver?.stop()
+        focusedWindowObserver = nil
+        observedApplication = nil
+    }
+
+    private func closeIfWindowChanged(in application: NSRunningApplication) {
+        guard panel.isVisible else { return }
+        let newTarget = try? windowManager.captureTarget(application: application)
+        if let current = panel.target, let newTarget,
+           current.pid == newTarget.pid, CFEqual(current.axWindow, newTarget.axWindow) {
+            return
+        }
+        if panel.target == nil && newTarget == nil { return }
+        panel.cancel()
     }
 
     private func apply(selection: GridSelection) {

@@ -9,9 +9,9 @@ final class WindowManager {
 
     init(tracker: ExternalApplicationTracker) { self.tracker = tracker }
 
-    func captureTarget() throws -> WindowTarget {
+    func captureTarget(application requestedApplication: NSRunningApplication? = nil) throws -> WindowTarget {
         try AccessibilityPermission.require()
-        guard let application = tracker.current(), !application.isTerminated,
+        guard let application = requestedApplication ?? tracker.current(), !application.isTerminated,
               application.processIdentifier != getpid() else { throw WindowOperationError.applicationUnavailable }
         let appElement = AXUIElementCreateApplication(application.processIdentifier)
         guard let window = AXHelpers.window(appElement, kAXFocusedWindowAttribute as CFString)

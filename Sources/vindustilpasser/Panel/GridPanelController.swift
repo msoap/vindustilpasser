@@ -6,6 +6,9 @@ final class GridPanelController {
     private(set) var target: WindowTarget?
     private(set) var panel: GridPanel?
     private var monitor: Any?
+    private var localMouseMonitor: Any?
+    private var globalMouseMonitor: Any?
+    private var keyObserver: NSObjectProtocol?
     private let gridView = GridView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let hintLabel = NSTextField(labelWithString: "")
@@ -20,6 +23,8 @@ final class GridPanelController {
     var onPreset: ((UUID) -> Void)?
     var onSettings: (() -> Void)?
     var onQuit: (() -> Void)?
+    var onCancel: (() -> Void)?
+    var ignoredClickWindow: NSWindow?
 
     var isVisible: Bool { panel?.isVisible == true }
 
@@ -98,6 +103,33 @@ final class GridPanelController {
             let handled = MainActor.assumeIsolated { self.handle(event) }
             return handled ? nil : event
         }
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] event in
+            guard let self, self.isVisible else { return event }
+            MainActor.assumeIsolated {
+                if event.window !== self.panel &&
+                    (self.ignoredClickWindow == nil || event.window !== self.ignoredClickWindow) {
+                    self.cancel()
+                }
+            }
+            return event
+        }
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] event in
+            guard let self, self.isVisible else { return }
+            MainActor.assumeIsolated {
+                let location = event.window == nil ? event.locationInWindow : NSEvent.mouseLocation
+                if let panel = self.panel, !panel.frame.contains(location) {
+                    self.cancel()
+                }
+            }
+        }
+        keyObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResignKeyNotification, object: panel, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.isVisible else { return }
+                self.cancel()
+            }
+        }
         panel.makeKeyAndOrderFront(nil)
         panel.makeFirstResponder(gridView)
     }
@@ -109,6 +141,12 @@ final class GridPanelController {
         errorLabel.isHidden = true
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
+        if let localMouseMonitor { NSEvent.removeMonitor(localMouseMonitor) }
+        localMouseMonitor = nil
+        if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor) }
+        globalMouseMonitor = nil
+        if let keyObserver { NotificationCenter.default.removeObserver(keyObserver) }
+        keyObserver = nil
         gridView.resetInteraction()
         gridView.fineMode = false
         gridView.onSelectionChanged = nil
@@ -116,6 +154,7 @@ final class GridPanelController {
         panel?.orderOut(nil)
         panel = nil
         target = nil
+        onCancel?()
     }
 
     func showError(_ message: String) {
