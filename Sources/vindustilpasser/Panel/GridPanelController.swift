@@ -43,7 +43,7 @@ final class GridPanelController {
                                       in: screen.visibleFrame)
         } ?? GridSelection(x: 0, y: 0, width: geometry.fineColumns, height: geometry.fineRows)
         gridView.fineMode = NSEvent.modifierFlags.contains(.option)
-        let panelWidth: CGFloat = 352
+        let panelWidth: CGFloat = 380
         let horizontalInset: CGFloat = 14
         let headerHeight: CGFloat = 43
         let footerHeight: CGFloat = 34
@@ -224,7 +224,7 @@ final class GridPanelController {
 
     private func updateHint() {
         let selection = gridView.selection
-        hintLabel.stringValue = "\(settings.general.saveWindowHotKey.label) Save  ·  \(settings.general.restoreWindowHotKey.label) Restore  ·  ↵ Apply  ·  \(selection.sizeLabel(fine: gridView.fineMode))"
+        hintLabel.stringValue = "⌥ Fine · \(settings.general.saveWindowHotKey.label) Save · \(settings.general.restoreWindowHotKey.label) Restore · ↵ Apply · \(selection.sizeLabel(fine: gridView.fineMode))"
     }
 
     private func applySelection() {
