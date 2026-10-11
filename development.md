@@ -43,4 +43,4 @@ Set a specific app version with `make new-version VERSION=1.2.3`, or bump the cu
 
 Pushing a tag named `vN.N.N` or `vN.N.N-beta-NNN` runs the GitHub Actions release workflow. The numeric part must match `CFBundleShortVersionString` in `Resources/Info.plist`. Beta tags create GitHub prereleases; the plist version remains numeric because macOS requires three period-separated integers. The workflow tests and builds on Apple silicon and Intel runners, then attaches an ad-hoc signed DMG for each architecture to the GitHub Release. No signing certificate or Apple notarization credentials are needed.
 
-Commit the version change and workflow before tagging. For example, when the plist version is `1.1.1`, run `git tag v1.1.1 && git push origin v1.1.1`. For a beta of the same version, use a tag such as `v1.1.1-beta-001`.
+Commit the version change and workflow before tagging. Run `make new-tag-from-plist` to create a `vN.N.N` tag for the plist version; it does nothing if that tag already exists. Then push it, for example with `git push origin v1.1.1` when the plist version is `1.1.1`. For a beta of the same version, use a tag such as `v1.1.1-beta-001`.

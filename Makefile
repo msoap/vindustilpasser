@@ -7,7 +7,7 @@ ICONSET := build/AppIcon.iconset
 APP_VERSION := $(shell /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
 DMG := build/$(APP)-$(APP_VERSION).dmg
 
-.PHONY: build build-unsigned assemble-app clean deploy build-dmg icon test setup-signing new-version inc-patch-version inc-minor-version inc-major-version
+.PHONY: build build-unsigned assemble-app clean deploy build-dmg icon test setup-signing new-version inc-patch-version inc-minor-version inc-major-version new-tag-from-plist
 
 new-version:
 	@./scripts/update-version.sh set
@@ -20,6 +20,16 @@ inc-minor-version:
 
 inc-major-version:
 	@./scripts/update-version.sh major
+
+new-tag-from-plist:
+	@set -eu; \
+		tag="v$(APP_VERSION)"; \
+		if git show-ref --verify --quiet "refs/tags/$$tag"; then \
+			echo "Tag $$tag already exists"; \
+		else \
+			git tag "$$tag"; \
+			echo "Created tag $$tag"; \
+		fi
 
 setup-signing:
 	./scripts/setup-local-signing.sh
