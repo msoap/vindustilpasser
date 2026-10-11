@@ -101,10 +101,11 @@ jobs:
           previous_tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude "$RELEASE_TAG" "$RELEASE_TAG" 2>/dev/null || true)
           commit_heading="### Changelog"
           if [[ -n "$previous_tag" ]]; then
-            commits=$(git log --format='- %s' "$previous_tag..$RELEASE_TAG" | grep -Ev "bump version|cleanup|refactoring")
+            commits=$(git log --format='- %s' "$previous_tag..$RELEASE_TAG")
           else
-            commits=$(git log --format='- %s' "$RELEASE_TAG" | grep -Ev "bump version|cleanup|refactoring")
+            commits=$(git log --format='- %s' "$RELEASE_TAG")
           fi
+          commits=$(printf '%s\n' "$commits" | grep -Ev 'bump version|cleanup|refactoring' || true)
           if [[ -z "$commits" ]]; then
             commits='- No new commits'
           fi
