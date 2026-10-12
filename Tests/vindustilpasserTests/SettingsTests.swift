@@ -123,4 +123,28 @@ struct SettingsTests {
         settings.savedWindows.append(saved)
         #expect(throws: SettingsError.self) { try settings.validate() }
     }
+
+    @Test func applicationWindowFallbackPersistsAndUsesWindowType() throws {
+        var settings = AppSettings.defaults
+        let mainWindow = SavedWindow.Identity(bundleID: "com.example.Chat", kind: .applicationWindow,
+                                              value: "AXStandardWindow")
+        let dialog = SavedWindow.Identity(bundleID: "com.example.Chat", kind: .applicationWindow,
+                                          value: "AXDialog")
+        let saved = SavedWindow(id: UUID(), identity: mainWindow, applicationName: "Chat",
+                                windowName: "Chat", displayName: "Display", displayUUID: "monitor-one",
+                                pixelWidth: 1920, pixelHeight: 1080,
+                                x: 10, y: 20, width: 900, height: 600)
+        settings.savedWindows = [saved]
+        let decoded = try SettingsMigration.decode(JSONEncoder().encode(settings))
+        #expect(decoded.savedWindows == [saved])
+        #expect(!saved.matches(dialog, displayUUID: "monitor-one", pixelWidth: 1920, pixelHeight: 1080))
+
+        var another = saved
+        another.id = UUID()
+        another.identity = dialog
+        settings.savedWindows.append(another)
+        try settings.validate()
+        settings.savedWindows[1].identity = mainWindow
+        #expect(throws: SettingsError.self) { try settings.validate() }
+    }
 }

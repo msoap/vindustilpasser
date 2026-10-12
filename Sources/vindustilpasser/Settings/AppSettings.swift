@@ -16,7 +16,7 @@ struct WindowPreset: Codable, Identifiable, Equatable {
 
 struct SavedWindow: Codable, Identifiable, Equatable {
     struct Identity: Codable, Hashable {
-        enum Kind: String, Codable { case document, accessibilityIdentifier }
+        enum Kind: String, Codable { case document, accessibilityIdentifier, applicationWindow }
         var bundleID: String
         var kind: Kind
         var value: String

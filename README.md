@@ -28,7 +28,7 @@ Command-F10 fills the usable screen without entering macOS fullscreen. Change gr
 
 With the grid panel open, press Command-S to save the selected window's exact position and size, or Command-L to restore it. A Restore button appears when a saved frame matches the window, monitor, and resolution; click it to restore. Change these panel-only shortcuts in Settings → General. Settings → Saved Windows lists saved frames and lets you delete them.
 
-Saved frames use the app's Accessibility document URL or window identifier to recognize a window. Some apps do not provide either value, and apps can reuse identifiers; those windows may not be safe to recognize across launches. The app rejects windows without an identity and windows whose identity is shared by multiple currently open windows. Display coordinates are stored relative to the monitor, in macOS points, without grid snapping. Apps may still enforce their own minimum sizes or placement limits.
+Saved frames use the app's Accessibility document URL or window identifier to recognize a window. For apps that provide neither, the app matches by bundle ID and window type when only one window of that type is open. If another matching window opens, save and restore are paused until only one remains. Apps can reuse identifiers, so those windows may still be unsafe to recognize across launches. Display coordinates are stored relative to the monitor, in macOS points, without grid snapping. Apps may still enforce their own minimum sizes or placement limits.
 
 In Settings → General, enable **Launch at login** to add the installed app to your user’s Login Items. Turn it off to remove the app. If macOS requires approval, allow the app in System Settings → General → Login Items.
 

@@ -13,7 +13,8 @@ final class WindowManager {
         guard let bundleID = target.application.bundleIdentifier, !bundleID.isEmpty else {
             throw WindowOperationError.unidentifiedWindow
         }
-        guard let identity = windowIdentity(target.axWindow, bundleID: bundleID) else {
+        guard let identity = windowIdentity(target.axWindow, bundleID: bundleID)
+                ?? applicationWindowIdentity(target.axWindow, bundleID: bundleID) else {
             throw WindowOperationError.unidentifiedWindow
         }
         let appElement = AXUIElementCreateApplication(target.pid)
@@ -21,7 +22,10 @@ final class WindowManager {
             throw WindowOperationError.unidentifiedWindow
         }
         let duplicates = windows.filter { window in
-            windowIdentity(window, bundleID: bundleID) == identity
+            if identity.kind == .applicationWindow {
+                return applicationWindowIdentity(window, bundleID: bundleID) == identity
+            }
+            return windowIdentity(window, bundleID: bundleID) == identity
         }
         guard duplicates.count == 1, CFEqual(duplicates[0], target.axWindow) else {
             throw WindowOperationError.ambiguousWindow
@@ -39,6 +43,15 @@ final class WindowManager {
             return SavedWindow.Identity(bundleID: bundleID, kind: .accessibilityIdentifier, value: identifier)
         }
         return nil
+    }
+
+    private func applicationWindowIdentity(_ window: AXUIElement, bundleID: String) -> SavedWindow.Identity? {
+        guard (AXHelpers.optionalAttribute(window, kAXRoleAttribute as CFString) as? String) == (kAXWindowRole as String) else {
+            return nil
+        }
+        let subrole = AXHelpers.optionalAttribute(window, kAXSubroleAttribute as CFString) as? String
+        return SavedWindow.Identity(bundleID: bundleID, kind: .applicationWindow,
+                                    value: subrole.flatMap { $0.isEmpty ? nil : $0 } ?? (kAXWindowRole as String))
     }
 
     func captureTarget(application requestedApplication: NSRunningApplication? = nil) throws -> WindowTarget {
