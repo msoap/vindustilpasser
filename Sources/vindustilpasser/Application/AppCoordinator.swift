@@ -38,7 +38,8 @@ final class AppCoordinator {
         statusItem.onSettings = { [weak self] in self?.openSettings() }
         statusItem.onAbout = { [weak self] in self?.openAbout() }
         statusItem.onQuit = { [weak self] in self?.quit() }
-        statusItem.setVisible(settings.general.showMenuBarIcon)
+        statusItem.setVisible(settings.general.showMenuBarIcon,
+                              activationHotKey: settings.general.activationHotKey)
         do { try hotKeys.apply(settings: settings) }
         catch { showError(error) }
         commandMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -309,7 +310,8 @@ final class AppCoordinator {
             throw error
         }
         settings = updated
-        statusItem.setVisible(updated.general.showMenuBarIcon)
+        statusItem.setVisible(updated.general.showMenuBarIcon,
+                              activationHotKey: updated.general.activationHotKey)
     }
 
     private func showError(_ error: Error) {
