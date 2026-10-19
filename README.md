@@ -5,8 +5,8 @@
 vindustilpasser is a native macOS menu-bar utility for positioning windows of other applications. It uses AppKit, Accessibility, and Carbon hotkeys. It has no Dock icon or normal application menu.
 
 - Move and resize windows with a grid panel, keyboard arrows, or a finer grid mode.
-- Save and restore a window's size and position for each monitor and resolution.
-- Apply built-in or custom window presets from the panel or with global hotkeys.
+- Save and restore a window's size and position for each monitor and resolution. Also allow restoring all saved windows at once.
+- Apply built-in or custom window presets from the menu bar or panel, or with global hotkeys.
 - Customize the grid and shortcuts, and optionally launch at login.
 
 ## Build and run
@@ -28,7 +28,9 @@ Command-F10 fills the usable screen without entering macOS fullscreen. Change gr
 
 With the grid panel open, press Command-S to save the selected window's exact position and size, or Command-L to restore it. A Restore button appears when a saved frame matches the window, monitor, and resolution; click it to restore. Change these panel-only shortcuts in Settings → General. Settings → Saved Windows lists saved frames and lets you delete them.
 
-Press Command-Shift-L with the panel open to restore all matching saved windows on the panel's monitor and current Space. Hidden, minimized, fullscreen, and unmatched windows are skipped. Windows are restored without activating them or changing focus; if none match, nothing happens. Change the **Restore all windows** shortcut in Settings → General.
+The menu bar also offers **Save window**, **Restore window**, **Restore all windows**, and a **Presets** submenu without opening the panel. Save, Restore, and presets act on the active window; Restore all acts on the active window's monitor and current Space, falling back to the menu bar's monitor when no window is available.
+
+Press Command-Shift-L with the panel open to restore all matching saved windows on the panel's monitor and current Space. Hidden, minimized, fullscreen, and unmatched windows are skipped. Windows are restored without activating them or changing focus; if none match, nothing happens.
 
 Saved frames use the app's Accessibility document URL or window identifier to recognize a window. For apps that provide neither, the app matches by bundle ID and window type when only one window of that type is open. If another matching window opens, save and restore are paused until only one remains. Apps can reuse identifiers, so those windows may still be unsafe to recognize across launches. Display coordinates are stored relative to the monitor, in macOS points, without grid snapping. Apps may still enforce their own minimum sizes or placement limits.
 

@@ -36,11 +36,14 @@ final class AppCoordinator {
             }
         }
         statusItem.onOpen = { [weak self] in self?.toggleGridPanel() }
+        statusItem.onSaveWindow = { [weak self] in self?.saveWindow() }
+        statusItem.onRestoreWindow = { [weak self] in self?.restoreWindow() }
+        statusItem.onRestoreAllWindows = { [weak self] in self?.restoreAllWindows() }
+        statusItem.onPreset = { [weak self] id in self?.applyPreset(id: id) }
         statusItem.onSettings = { [weak self] in self?.openSettings() }
         statusItem.onAbout = { [weak self] in self?.openAbout() }
         statusItem.onQuit = { [weak self] in self?.quit() }
-        statusItem.setVisible(settings.general.showMenuBarIcon,
-                              activationHotKey: settings.general.activationHotKey)
+        statusItem.apply(settings: settings)
         do { try hotKeys.apply(settings: settings) }
         catch { showError(error) }
         commandMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -122,7 +125,7 @@ final class AppCoordinator {
 
     private func apply(selection: GridSelection) {
         do {
-            let target = try panel.target ?? windowManager.captureTarget()
+            let target = try currentWindowTarget()
             let geometry = GridGeometry(columns: settings.grid.columns, rows: settings.grid.rows)
             let rect = geometry.rect(for: selection, in: target.screen.visibleFrame)
             apply(rect: rect, target: target)
@@ -141,7 +144,7 @@ final class AppCoordinator {
     func applyPreset(id: UUID) {
         guard let preset = settings.presets.first(where: { $0.id == id }) else { return }
         do {
-            let target = try panel.target ?? windowManager.captureTarget()
+            let target = try currentWindowTarget()
             let geometry = GridGeometry(columns: settings.grid.columns, rows: settings.grid.rows)
             apply(rect: geometry.rect(for: preset.area, in: target.screen.visibleFrame), target: target)
         } catch { showError(error) }
@@ -149,7 +152,7 @@ final class AppCoordinator {
 
     private func saveWindow() {
         do {
-            let target = try currentPanelTarget()
+            let target = try currentWindowTarget()
             let identity = try windowManager.identity(for: target)
             let frame = ScreenGeometry.appKitRect(fromAX: try AXHelpers.frame(target.axWindow))
             guard let screen = ScreenGeometry.screen(for: frame),
@@ -195,7 +198,7 @@ final class AppCoordinator {
 
     private func restoreWindow() {
         do {
-            let target = try currentPanelTarget()
+            let target = try currentWindowTarget()
             let identity = try windowManager.identity(for: target)
             let current = ScreenGeometry.appKitRect(fromAX: try AXHelpers.frame(target.axWindow))
             guard let screen = ScreenGeometry.screen(for: current),
@@ -213,11 +216,16 @@ final class AppCoordinator {
     }
 
     private func restoreAllWindows() {
-        guard panel.isVisible, let screen = panel.screen else { return }
-        if windowManager.restoreAll(on: screen, savedWindows: settings.savedWindows) > 0 { panel.cancel() }
+        do {
+            try AccessibilityPermission.require()
+            guard let screen = panel.screen ?? (try? windowManager.captureTarget())?.screen
+                    ?? statusItem.screen ?? NSScreen.main else { throw WindowOperationError.noWindow }
+            if windowManager.restoreAll(on: screen, savedWindows: settings.savedWindows) > 0 { panel.cancel() }
+        } catch { showError(error) }
     }
 
-    private func currentPanelTarget() throws -> WindowTarget {
+    private func currentWindowTarget() throws -> WindowTarget {
+        guard panel.isVisible else { return try windowManager.captureTarget() }
         guard let target = panel.target else { throw WindowOperationError.noWindow }
         let current = try windowManager.captureTarget(application: target.application)
         guard current.pid == target.pid, CFEqual(current.axWindow, target.axWindow) else {
@@ -314,13 +322,12 @@ final class AppCoordinator {
             throw error
         }
         settings = updated
-        statusItem.setVisible(updated.general.showMenuBarIcon,
-                              activationHotKey: updated.general.activationHotKey)
+        statusItem.apply(settings: updated)
     }
 
     private func showError(_ error: Error) {
         logger.error("\(error.localizedDescription)")
-        guard (error as? WindowOperationError)?.requiresAlert == true else {
+        if panel.isVisible, (error as? WindowOperationError)?.requiresAlert != true {
             panel.showError(error.localizedDescription)
             return
         }
