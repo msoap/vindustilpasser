@@ -40,7 +40,7 @@ Grant vindustilpasser Accessibility access when prompted, or in System Settings 
 
 ## Settings screenshot
 
-<img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/e2bff221-9c21-49e7-89dc-6e35367adc85" />
+<img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/f3494710-c1b9-4505-b31b-a74800d24d72" />
 <img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/100090ec-471d-446c-a7ea-b1b510e85b32" />
 <img width="346" height="300" alt="image" src="https://github.com/user-attachments/assets/df3b397f-aeba-455d-a358-f889584756d0" />
 <img width="346" height="320" alt="image" src="https://github.com/user-attachments/assets/d1a30bb0-a38e-4aff-b66c-a8e7280ac0bf" />
