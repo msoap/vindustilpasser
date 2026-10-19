@@ -2,7 +2,9 @@
 
 ## Requirements
 
-Use macOS 13 or later with Xcode Command Line Tools; full Xcode is not required. Install the tools with `xcode-select --install` if needed. The Swift Testing runner used by `make test` requires macOS 14 or later.
+The built app requires macOS 11 (Big Sur) or later. Its Launch at login setting requires macOS 13 or later and is disabled on older systems.
+
+To build, use macOS 13 or later with Xcode Command Line Tools providing Swift 6.0 or later; full Xcode is not required. The chosen toolchain may require a newer macOS version. Install the tools with `xcode-select --install` if needed. The Swift Testing runner used by `make test` requires macOS 14 or later.
 
 ## Build, run, and install
 
@@ -11,7 +13,7 @@ make build
 open build/vindustilpasser.app
 ```
 
-`make build` creates `build/vindustilpasser.app` and verifies its signature. The Makefile selects SwiftPM's native build backend for compatibility with this machine's Command Line Tools. `make clean` removes build outputs without deleting settings or signing state. `make test` compiles and runs the logic tests.
+`make build` creates `build/vindustilpasser.app` and verifies its signature. The Makefile selects SwiftPM's native build backend for compatibility with this machine's Command Line Tools. It explicitly targets the minimum macOS version declared in `Resources/Info.plist`, checks the executable's deployment target, and embeds the Swift compatibility libraries needed on older systems. The DMG build uses the same runtime preparation. `make clean` removes build outputs without deleting settings or signing state. `make test` compiles and runs the logic tests.
 
 To install the signed build, clone this repository and run `make build && make deploy` from its directory. `make deploy` chooses `~/Applications` if that directory exists and `/Applications` otherwise; it does not create `~/Applications`. Set `DEPLOY_DIR=/path` to override. Keep the same destination after granting Accessibility access.
 
@@ -41,6 +43,6 @@ If macOS blocks the app from a DMG you trust, copy the app to Applications and t
 
 Set a specific app version with `make new-version VERSION=1.2.3`, or bump the current version with `make inc-patch-version`, `make inc-minor-version`, or `make inc-major-version`. These commands update `CFBundleShortVersionString` in `Resources/Info.plist`; minor and major bumps reset lower components to zero.
 
-Pushing a tag named `vN.N.N` or `vN.N.N-beta-NNN` runs the GitHub Actions release workflow. The numeric part must match `CFBundleShortVersionString` in `Resources/Info.plist`. Beta tags create GitHub prereleases; the plist version remains numeric because macOS requires three period-separated integers. The workflow tests and builds on Apple silicon and Intel runners, then attaches an ad-hoc signed DMG for each architecture to the GitHub Release. No signing certificate or Apple notarization credentials are needed.
+Pushing a tag named `vN.N.N` or `vN.N.N-beta-NNN` runs the GitHub Actions release workflow. The numeric part must match `CFBundleShortVersionString` in `Resources/Info.plist`. Beta tags create GitHub prereleases; the plist version remains numeric because macOS requires three period-separated integers. The workflow tests and builds on Apple silicon and Intel runners, verifies that each app declares and targets macOS 11.0 and includes the Swift concurrency runtime, then attaches an ad-hoc signed DMG for each architecture to the GitHub Release. No signing certificate or Apple notarization credentials are needed.
 
 Commit the version change and workflow before tagging. Run `make new-tag-from-plist` to create a `vN.N.N` tag for the plist version; it does nothing if that tag already exists. Then push it, for example with `git push origin v1.1.1` when the plist version is `1.1.1`. For a beta of the same version, use a tag such as `v1.1.1-beta-001`.

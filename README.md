@@ -11,7 +11,7 @@ vindustilpasser is a native macOS menu-bar utility for positioning windows of ot
 
 ## Build and run
 
-Requires macOS 13 or later and Xcode Command Line Tools. Full Xcode is not needed.
+The app runs on macOS 11 (Big Sur) or later. Building requires macOS 13 or later and Xcode Command Line Tools with Swift 6.0 or later. Full Xcode is not needed.
 
 ```sh
 make build
@@ -34,7 +34,7 @@ Press Command-Shift-L with the panel open to restore all matching saved windows 
 
 Saved frames use the app's Accessibility document URL or window identifier to recognize a window. For apps that provide neither, the app matches by bundle ID and window type when only one window of that type is open. If another matching window opens, save and restore are paused until only one remains. Apps can reuse identifiers, so those windows may still be unsafe to recognize across launches. Display coordinates are stored relative to the monitor, in macOS points, without grid snapping. Apps may still enforce their own minimum sizes or placement limits.
 
-In Settings → General, enable **Launch at login** to add the installed app to your user’s Login Items. Turn it off to remove the app. If macOS requires approval, allow the app in System Settings → General → Login Items.
+On macOS 13 or later, in Settings → General, enable **Launch at login** to add the installed app to your user’s Login Items. Turn it off to remove the app. If macOS requires approval, allow the app in System Settings → General → Login Items. This setting is disabled on macOS 11 and 12.
 
 Grant vindustilpasser Accessibility access when prompted, or in System Settings → Privacy & Security → Accessibility. Some apps restrict how their windows can be resized.
 

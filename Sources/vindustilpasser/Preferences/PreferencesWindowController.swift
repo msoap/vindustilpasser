@@ -293,6 +293,10 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
     }
 
     @objc private func toggleLaunchAtLogin() {
+        guard #available(macOS 13.0, *) else {
+            refreshLoginItemStatus()
+            return
+        }
         do {
             if launchAtLoginCheckbox.state == .on {
                 try SMAppService.mainApp.register()
@@ -306,6 +310,13 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
     }
 
     private func refreshLoginItemStatus() {
+        guard #available(macOS 13.0, *) else {
+            launchAtLoginCheckbox.isEnabled = false
+            launchAtLoginCheckbox.state = .off
+            loginItemStatusLabel.stringValue = "Requires macOS 13 or later."
+            return
+        }
+        launchAtLoginCheckbox.isEnabled = true
         let status = SMAppService.mainApp.status
         launchAtLoginCheckbox.state = (status == .enabled || status == .requiresApproval) ? .on : .off
         loginItemStatusLabel.stringValue = status == .requiresApproval

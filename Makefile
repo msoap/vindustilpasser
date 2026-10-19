@@ -5,6 +5,10 @@ ICON_SVG := Resources/AppIcon.svg
 ICON_ICNS := Resources/AppIcon.icns
 ICONSET := build/AppIcon.iconset
 APP_VERSION := $(shell /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+MIN_MACOS := $(shell /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' Resources/Info.plist)
+TARGET_TRIPLE := $(shell uname -m)-apple-macosx$(MIN_MACOS)
+# Explicit compiler flags keep newer SwiftPM versions from raising the deployment target.
+SWIFT_RELEASE_FLAGS := -c release --build-system native --triple $(TARGET_TRIPLE) -Xswiftc -target -Xswiftc $(TARGET_TRIPLE) -Xlinker -rpath -Xlinker @executable_path/../Frameworks
 DMG := build/$(APP)-$(APP_VERSION).dmg
 
 .PHONY: build build-unsigned assemble-app clean deploy build-dmg icon test setup-signing new-version inc-patch-version inc-minor-version inc-major-version new-tag-from-plist
@@ -60,12 +64,13 @@ test:
 	DYLD_LIBRARY_PATH=/Library/Developer/CommandLineTools/Library/Developer/usr/lib build/vindustilpasserTests
 
 assemble-app:
-	swift build -c release --build-system native --product $(APP)
+	swift build $(SWIFT_RELEASE_FLAGS) --product $(APP)
 	rm -rf "$(BUNDLE)"
 	mkdir -p "$(BUNDLE)/Contents/MacOS" "$(BUNDLE)/Contents/Resources"
-	cp "$$(swift build -c release --build-system native --show-bin-path)/$(APP)" "$(BUNDLE)/Contents/MacOS/$(APP)"
+	cp "$$(swift build $(SWIFT_RELEASE_FLAGS) --show-bin-path)/$(APP)" "$(BUNDLE)/Contents/MacOS/$(APP)"
 	cp Resources/Info.plist "$(BUNDLE)/Contents/Info.plist"
 	cp "$(ICON_ICNS)" "$(BUNDLE)/Contents/Resources/"
+	./scripts/prepare-app-runtime.sh "$(BUNDLE)"
 
 build-unsigned: assemble-app
 	codesign --force --sign - -i "$(BUNDLE_ID)" "$(BUNDLE)"
@@ -86,13 +91,14 @@ deploy: build
 	echo "Deployed $$dest/$(APP).app"
 
 build-dmg:
-	swift build -c release --build-system native --product $(APP)
+	swift build $(SWIFT_RELEASE_FLAGS) --product $(APP)
 	rm -rf build/dmg-stage
 	rm -f build/dmg-working.dmg "$(DMG)"
 	mkdir -p "build/dmg-stage/$(APP).app/Contents/MacOS" "build/dmg-stage/$(APP).app/Contents/Resources"
-	cp "$$(swift build -c release --build-system native --show-bin-path)/$(APP)" "build/dmg-stage/$(APP).app/Contents/MacOS/$(APP)"
+	cp "$$(swift build $(SWIFT_RELEASE_FLAGS) --show-bin-path)/$(APP)" "build/dmg-stage/$(APP).app/Contents/MacOS/$(APP)"
 	cp Resources/Info.plist "build/dmg-stage/$(APP).app/Contents/Info.plist"
 	cp "$(ICON_ICNS)" "build/dmg-stage/$(APP).app/Contents/Resources/"
+	./scripts/prepare-app-runtime.sh "build/dmg-stage/$(APP).app"
 	codesign --force --sign - -i "$(BUNDLE_ID)" "build/dmg-stage/$(APP).app"
 	codesign --verify --strict --verbose=2 "build/dmg-stage/$(APP).app"
 	cp "$(ICON_ICNS)" build/dmg-stage/.VolumeIcon.icns

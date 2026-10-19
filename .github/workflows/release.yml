@@ -53,12 +53,19 @@ jobs:
           app_version="${release_version%%-beta-*}"
           app=build/dmg-stage/vindustilpasser.app
           dmg="build/vindustilpasser-${app_version}.dmg"
-          codesign --verify --strict --verbose=2 "$app"
+          codesign --verify --deep --strict --verbose=2 "$app"
           actual_arch=$(lipo -archs "$app/Contents/MacOS/vindustilpasser")
           if [[ "$actual_arch" != "$EXPECTED_ARCH" ]]; then
             echo "Expected $EXPECTED_ARCH binary, found $actual_arch" >&2
             exit 1
           fi
+          minimum_version=$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")
+          binary_minimum=$(xcrun vtool -show-build "$app/Contents/MacOS/vindustilpasser" | awk '$1 == "minos" { print $2 }')
+          if [[ "$minimum_version" != "11.0" || "$binary_minimum" != "11.0" ]]; then
+            echo "Expected macOS 11.0 minimum, found plist $minimum_version and executable $binary_minimum" >&2
+            exit 1
+          fi
+          test -f "$app/Contents/Frameworks/libswift_Concurrency.dylib"
           hdiutil verify "$dmg"
           mv "$dmg" "build/vindustilpasser-${release_version}-${EXPECTED_ARCH}.dmg"
 
