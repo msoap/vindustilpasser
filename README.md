@@ -22,7 +22,7 @@ For installation, signing, tests, and releases, see [development.md](development
 
 ## Use
 
-Press <kbd>⌘ F11</kbd> to open the positioning grid for the active window. Drag across cells and release to move and resize it. Arrow keys move the selection; hold <kbd>Shift</kbd> while pressing an arrow key to resize it. Hold <kbd>⌥</kbd> for a finer grid. Press <kbd>Enter</kbd> to apply or <kbd>Esc</kbd> to cancel. Clicking outside the grid or switching the active app or window closes it.
+Press <kbd>⌘ F11</kbd> to open the positioning grid for the active window. Drag across cells and release to move and resize it. Arrow keys move the selection; hold <kbd>Shift</kbd> while pressing an arrow key to resize it. Hold <kbd>Option</kbd> for a finer grid. Press <kbd>Enter</kbd> to apply or <kbd>Esc</kbd> to cancel. Clicking outside the grid or switching the active app or window closes it.
 
 <kbd>⌘ F10</kbd> fills the usable screen without entering macOS fullscreen. Change grid size and add your own presets and shortcuts in Settings (<kbd>⌘ ,</kbd>).
 
