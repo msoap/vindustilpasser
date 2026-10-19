@@ -22,15 +22,15 @@ For installation, signing, tests, and releases, see [development.md](development
 
 ## Use
 
-Press Command-F11 to open the positioning grid for the active window. Drag across cells and release to move and resize it. Arrow keys move the selection; Shift-arrow keys resize it. Hold Option for a finer grid. Press Return to apply or Escape to cancel. Clicking outside the grid or switching the active app or window closes it.
+Press <kbd>⌘ F11</kbd> to open the positioning grid for the active window. Drag across cells and release to move and resize it. Arrow keys move the selection; hold <kbd>Shift</kbd> while pressing an arrow key to resize it. Hold <kbd>⌥</kbd> for a finer grid. Press <kbd>Enter</kbd> to apply or <kbd>Esc</kbd> to cancel. Clicking outside the grid or switching the active app or window closes it.
 
-Command-F10 fills the usable screen without entering macOS fullscreen. Change grid size and add your own presets and shortcuts in Settings (Command-comma).
+<kbd>⌘ F10</kbd> fills the usable screen without entering macOS fullscreen. Change grid size and add your own presets and shortcuts in Settings (<kbd>⌘ ,</kbd>).
 
-With the grid panel open, press Command-S to save the selected window's exact position and size, or Command-L to restore it. A Restore button appears when a saved frame matches the window, monitor, and resolution; click it to restore. Change these panel-only shortcuts in Settings → General. Settings → Saved Windows lists saved frames and lets you delete them.
+With the grid panel open, press <kbd>⌘ S</kbd> to save the selected window's exact position and size, or <kbd>⌘ L</kbd> to restore it. A Restore button appears when a saved frame matches the window, monitor, and resolution; click it to restore. Change these panel-only shortcuts in Settings → General. Settings → Saved Windows lists saved frames and lets you delete them.
 
 The menu bar also offers **Save window**, **Restore window**, **Restore all windows**, and a **Presets** submenu without opening the panel. Save, Restore, and presets act on the active window; Restore all acts on the active window's monitor and current Space, falling back to the menu bar's monitor when no window is available.
 
-Press Command-Shift-L with the panel open to restore all matching saved windows on the panel's monitor and current Space. Hidden, minimized, fullscreen, and unmatched windows are skipped. Windows are restored without activating them or changing focus; if none match, nothing happens.
+Press <kbd>⌘ ⇧ L</kbd> with the panel open to restore all matching saved windows on the panel's monitor and current Space. Hidden, minimized, fullscreen, and unmatched windows are skipped. Windows are restored without activating them or changing focus; if none match, nothing happens.
 
 Saved frames use the app's Accessibility document URL or window identifier to recognize a window. For apps that provide neither, the app matches by bundle ID and window type when only one window of that type is open. If another matching window opens, save and restore are paused until only one remains. Apps can reuse identifiers, so those windows may still be unsafe to recognize across launches. Display coordinates are stored relative to the monitor, in macOS points, without grid snapping. Apps may still enforce their own minimum sizes or placement limits.
 
