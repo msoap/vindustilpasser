@@ -9,6 +9,9 @@ enum SettingsMigration {
         let general = object?["general"] as? [String: Any]
         var used = Set(settings.presets.compactMap(\.hotKey))
         used.insert(settings.general.activationHotKey)
+        if general?["saveWindowHotKey"] != nil { used.insert(settings.general.saveWindowHotKey) }
+        if general?["restoreWindowHotKey"] != nil { used.insert(settings.general.restoreWindowHotKey) }
+        if general?["restoreAllWindowsHotKey"] != nil { used.insert(settings.general.restoreAllWindowsHotKey) }
         if general?["saveWindowHotKey"] == nil {
             settings.general.saveWindowHotKey = availableKey(code: UInt32(kVK_ANSI_S), label: "S", used: used)
         }
@@ -16,12 +19,18 @@ enum SettingsMigration {
         if general?["restoreWindowHotKey"] == nil {
             settings.general.restoreWindowHotKey = availableKey(code: UInt32(kVK_ANSI_L), label: "L", used: used)
         }
+        used.insert(settings.general.restoreWindowHotKey)
+        if general?["restoreAllWindowsHotKey"] == nil {
+            settings.general.restoreAllWindowsHotKey = availableKey(code: UInt32(kVK_ANSI_L), label: "L", used: used,
+                                                                   preferredModifiers: [.command, .shift])
+        }
         try settings.validate()
         return settings
     }
 
-    private static func availableKey(code: UInt32, label: String, used: Set<HotKey>) -> HotKey {
-        let modifiers: [HotKeyModifiers] = [[.command], [.command, .shift], [.command, .option],
+    private static func availableKey(code: UInt32, label: String, used: Set<HotKey>,
+                                     preferredModifiers: HotKeyModifiers = .command) -> HotKey {
+        let modifiers: [HotKeyModifiers] = [preferredModifiers, [.command], [.command, .shift], [.command, .option],
                                             [.command, .control], [.command, .option, .shift]]
         return modifiers.map { HotKey(keyCode: code, modifiers: $0, displayKey: label) }
             .first { !used.contains($0) } ?? HotKey(keyCode: code, modifiers: [.command], displayKey: label)

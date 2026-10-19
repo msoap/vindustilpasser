@@ -52,6 +52,7 @@ test:
 		Sources/vindustilpasser/Geometry/*.swift Sources/vindustilpasser/HotKeys/HotKey.swift \
 		Sources/vindustilpasser/HotKeys/HotKeyRecorderView.swift Sources/vindustilpasser/Accessibility/AXHelpers.swift \
 		Sources/vindustilpasser/Accessibility/WindowFrameApplication.swift \
+		Sources/vindustilpasser/Accessibility/WindowInventory.swift \
 		Sources/vindustilpasser/Preferences/PresetTableView.swift \
 		Sources/vindustilpasser/Preferences/SavedWindowTableView.swift \
 		Sources/vindustilpasser/Settings/*.swift Tests/vindustilpasserTests/*.swift

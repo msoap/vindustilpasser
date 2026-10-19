@@ -14,6 +14,7 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
     private let activationRecorder = HotKeyRecorderView()
     private let saveRecorder = HotKeyRecorderView()
     private let restoreRecorder = HotKeyRecorderView()
+    private let restoreAllRecorder = HotKeyRecorderView()
     private let permissionLabel = NSTextField(labelWithString: "")
     private let columnsField = NSTextField()
     private let rowsField = NSTextField()
@@ -99,6 +100,7 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
         activationRecorder.hotKey = settings.general.activationHotKey
         saveRecorder.hotKey = settings.general.saveWindowHotKey
         restoreRecorder.hotKey = settings.general.restoreWindowHotKey
+        restoreAllRecorder.hotKey = settings.general.restoreAllWindowsHotKey
         columnsField.integerValue = settings.grid.columns
         rowsField.integerValue = settings.grid.rows
         gridPreview.geometry = GridGeometry(columns: settings.grid.columns, rows: settings.grid.rows)
@@ -171,24 +173,39 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate, N
             self.commit(updated)
         }
         view.addSubview(restoreRecorder)
-        menuBarCheckbox.frame = CGRect(x: 30, y: 222, width: 250, height: 25)
+        view.addSubview(label("Restore all windows", frame: CGRect(x: 30, y: 227, width: 145, height: 22)))
+        restoreAllRecorder.frame = CGRect(x: 180, y: 223, width: 160, height: 30)
+        restoreAllRecorder.setAccessibilityLabel("Restore all windows shortcut")
+        restoreAllRecorder.toolTip = "Restore saved windows on this monitor and Space while the panel is open."
+        restoreAllRecorder.onChange = { [weak self] key in
+            guard let self, let key, key.isLocalValid else {
+                self?.showError(SettingsError.invalid)
+                self?.restoreAllRecorder.hotKey = self?.settings.general.restoreAllWindowsHotKey
+                return
+            }
+            var updated = self.settings
+            updated.general.restoreAllWindowsHotKey = key
+            self.commit(updated)
+        }
+        view.addSubview(restoreAllRecorder)
+        menuBarCheckbox.frame = CGRect(x: 30, y: 182, width: 250, height: 25)
         menuBarCheckbox.target = self
         menuBarCheckbox.action = #selector(toggleMenuBar)
         view.addSubview(menuBarCheckbox)
-        launchAtLoginCheckbox.frame = CGRect(x: 30, y: 187, width: 250, height: 25)
+        launchAtLoginCheckbox.frame = CGRect(x: 30, y: 147, width: 250, height: 25)
         launchAtLoginCheckbox.target = self
         launchAtLoginCheckbox.action = #selector(toggleLaunchAtLogin)
         view.addSubview(launchAtLoginCheckbox)
-        loginItemStatusLabel.frame = CGRect(x: 48, y: 164, width: 500, height: 20)
+        loginItemStatusLabel.frame = CGRect(x: 48, y: 124, width: 500, height: 20)
         view.addSubview(loginItemStatusLabel)
-        view.addSubview(label("Accessibility:", frame: CGRect(x: 30, y: 128, width: 120, height: 22)))
-        permissionLabel.frame = CGRect(x: 150, y: 128, width: 220, height: 22)
+        view.addSubview(label("Accessibility:", frame: CGRect(x: 30, y: 88, width: 120, height: 22)))
+        permissionLabel.frame = CGRect(x: 150, y: 88, width: 220, height: 22)
         view.addSubview(permissionLabel)
         let request = NSButton(title: "Request Access", target: self, action: #selector(requestAccess))
-        request.frame = CGRect(x: 30, y: 82, width: 130, height: 30)
+        request.frame = CGRect(x: 30, y: 42, width: 130, height: 30)
         view.addSubview(request)
         view.addSubview(label("Access is granted in System Settings → Privacy & Security → Accessibility.",
-                              frame: CGRect(x: 30, y: 40, width: 520, height: 25)))
+                              frame: CGRect(x: 30, y: 8, width: 520, height: 25)))
     }
 
     private func buildSavedWindowsTab() {

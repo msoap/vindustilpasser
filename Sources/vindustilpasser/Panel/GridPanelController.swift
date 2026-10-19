@@ -4,6 +4,7 @@ import Carbon
 @MainActor
 final class GridPanelController {
     private(set) var target: WindowTarget?
+    private(set) var screen: NSScreen?
     private(set) var panel: GridPanel?
     private var monitor: Any?
     private var localMouseMonitor: Any?
@@ -24,6 +25,7 @@ final class GridPanelController {
     var onPreset: ((UUID) -> Void)?
     var onSaveWindow: (() -> Void)?
     var onRestoreWindow: (() -> Void)?
+    var onRestoreAllWindows: (() -> Void)?
     var onSettings: (() -> Void)?
     var onQuit: (() -> Void)?
     var onCancel: (() -> Void)?
@@ -35,6 +37,7 @@ final class GridPanelController {
               settings: AppSettings, restoreAvailable: Bool) {
         cancel()
         self.target = target
+        self.screen = screen
         self.settings = settings
         let geometry = GridGeometry(columns: settings.grid.columns, rows: settings.grid.rows)
         gridView.geometry = geometry
@@ -99,6 +102,7 @@ final class GridPanelController {
         visual.addSubview(gridView)
         hintLabel.font = .systemFont(ofSize: 11)
         hintLabel.textColor = .secondaryLabelColor
+        hintLabel.maximumNumberOfLines = 1
         hintLabel.frame = CGRect(x: horizontalInset, y: (footerHeight - 19) / 2,
                                  width: panelWidth - horizontalInset * 2, height: 19)
         visual.addSubview(hintLabel)
@@ -172,6 +176,7 @@ final class GridPanelController {
         panel?.orderOut(nil)
         panel = nil
         target = nil
+        screen = nil
         onCancel?()
     }
 
@@ -225,6 +230,7 @@ final class GridPanelController {
     private func updateHint() {
         let selection = gridView.selection
         hintLabel.stringValue = "⌥ Fine · \(settings.general.saveWindowHotKey.label) Save · \(settings.general.restoreWindowHotKey.label) Restore · ↵ Apply · \(selection.sizeLabel(fine: gridView.fineMode))"
+        hintLabel.toolTip = "\(settings.general.restoreAllWindowsHotKey.label) Restore all windows"
     }
 
     private func applySelection() {
@@ -243,6 +249,7 @@ final class GridPanelController {
         let pressed = HotKey(keyCode: code, modifiers: modifiers, displayKey: nil)
         if pressed == settings.general.saveWindowHotKey { onSaveWindow?(); return true }
         if pressed == settings.general.restoreWindowHotKey { onRestoreWindow?(); return true }
+        if pressed == settings.general.restoreAllWindowsHotKey { onRestoreAllWindows?(); return true }
         if modifiers.contains(.command) {
             if code == UInt32(kVK_ANSI_Comma) { onSettings?(); return true }
             if code == UInt32(kVK_ANSI_Q) { onQuit?(); return true }

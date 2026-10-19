@@ -52,6 +52,10 @@ struct SavedWindow: Codable, Identifiable, Equatable {
         self.identity == identity && self.displayUUID == displayUUID &&
             self.pixelWidth == pixelWidth && self.pixelHeight == pixelHeight
     }
+
+    func frame(on displayFrame: CGRect) -> CGRect {
+        CGRect(x: displayFrame.minX + x, y: displayFrame.minY + y, width: width, height: height)
+    }
 }
 
 struct AppSettings: Codable {
@@ -60,13 +64,15 @@ struct AppSettings: Codable {
         var activationHotKey: HotKey
         var saveWindowHotKey: HotKey
         var restoreWindowHotKey: HotKey
+        var restoreAllWindowsHotKey: HotKey
 
         init(showMenuBarIcon: Bool, activationHotKey: HotKey, saveWindowHotKey: HotKey,
-             restoreWindowHotKey: HotKey) {
+             restoreWindowHotKey: HotKey, restoreAllWindowsHotKey: HotKey) {
             self.showMenuBarIcon = showMenuBarIcon
             self.activationHotKey = activationHotKey
             self.saveWindowHotKey = saveWindowHotKey
             self.restoreWindowHotKey = restoreWindowHotKey
+            self.restoreAllWindowsHotKey = restoreAllWindowsHotKey
         }
 
         init(from decoder: Decoder) throws {
@@ -77,6 +83,8 @@ struct AppSettings: Codable {
                 ?? AppSettings.defaultSaveHotKey
             restoreWindowHotKey = try values.decodeIfPresent(HotKey.self, forKey: .restoreWindowHotKey)
                 ?? AppSettings.defaultRestoreHotKey
+            restoreAllWindowsHotKey = try values.decodeIfPresent(HotKey.self, forKey: .restoreAllWindowsHotKey)
+                ?? AppSettings.defaultRestoreAllHotKey
         }
     }
 
@@ -94,6 +102,7 @@ struct AppSettings: Codable {
 
     static let defaultSaveHotKey = HotKey(keyCode: UInt32(kVK_ANSI_S), modifiers: [.command], displayKey: "S")
     static let defaultRestoreHotKey = HotKey(keyCode: UInt32(kVK_ANSI_L), modifiers: [.command], displayKey: "L")
+    static let defaultRestoreAllHotKey = HotKey(keyCode: UInt32(kVK_ANSI_L), modifiers: [.command, .shift], displayKey: "L")
 
     init(version: Int = 1, general: General, grid: Grid, presets: [WindowPreset], savedWindows: [SavedWindow] = []) {
         self.version = version
@@ -115,7 +124,8 @@ struct AppSettings: Codable {
     static let defaults = AppSettings(
         general: General(showMenuBarIcon: true,
                          activationHotKey: HotKey(keyCode: UInt32(kVK_F11), modifiers: [.command], displayKey: "F11"),
-                         saveWindowHotKey: defaultSaveHotKey, restoreWindowHotKey: defaultRestoreHotKey),
+                         saveWindowHotKey: defaultSaveHotKey, restoreWindowHotKey: defaultRestoreHotKey,
+                         restoreAllWindowsHotKey: defaultRestoreAllHotKey),
         grid: Grid(columns: 8, rows: 8),
         presets: [
             WindowPreset(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!, name: "Full", scope: .global,
@@ -127,11 +137,12 @@ struct AppSettings: Codable {
     func validate() throws {
         guard grid.isValid, general.activationHotKey.isGlobalValid else { throw SettingsError.invalid }
         var globalKeys: Set<HotKey> = [general.activationHotKey]
-        guard general.saveWindowHotKey.isLocalValid, general.restoreWindowHotKey.isLocalValid else {
+        guard general.saveWindowHotKey.isLocalValid, general.restoreWindowHotKey.isLocalValid,
+              general.restoreAllWindowsHotKey.isLocalValid else {
             throw SettingsError.invalid
         }
-        var localKeys: Set<HotKey> = [general.saveWindowHotKey, general.restoreWindowHotKey]
-        guard localKeys.count == 2 else { throw SettingsError.conflict }
+        var localKeys: Set<HotKey> = [general.saveWindowHotKey, general.restoreWindowHotKey, general.restoreAllWindowsHotKey]
+        guard localKeys.count == 3 else { throw SettingsError.conflict }
         var presetIDs: Set<UUID> = []
         for preset in presets {
             guard preset.area.isValid, presetIDs.insert(preset.id).inserted else { throw SettingsError.invalid }

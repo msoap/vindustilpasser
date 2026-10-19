@@ -1,4 +1,5 @@
 import ApplicationServices
+import Darwin
 
 enum WindowOperationError: LocalizedError {
     case accessibilityDenied, applicationUnavailable, noWindow, targetGone, minimized, nativeFullScreen
@@ -32,6 +33,23 @@ enum WindowOperationError: LocalizedError {
 }
 
 enum AXHelpers {
+    private typealias WindowIDFunction = @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError
+
+    // There is no public AX-to-CGWindowID bridge. Resolve the private getter optionally:
+    // if unavailable, skip batch targets rather than guess using frames shared across Spaces.
+    private static let windowIDFunction: WindowIDFunction? = {
+        guard let handle = dlopen(nil, RTLD_LAZY) else { return nil }
+        defer { dlclose(handle) }
+        guard let symbol = dlsym(handle, "_AXUIElementGetWindow") else { return nil }
+        return unsafeBitCast(symbol, to: WindowIDFunction.self)
+    }()
+
+    static func windowID(_ window: AXUIElement) -> CGWindowID? {
+        var id = kCGNullWindowID
+        guard let windowIDFunction, windowIDFunction(window, &id) == .success, id != kCGNullWindowID else { return nil }
+        return id
+    }
+
     static func attribute(_ element: AXUIElement, _ name: CFString) throws -> CFTypeRef {
         var value: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(element, name, &value)

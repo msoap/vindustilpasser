@@ -25,6 +25,7 @@ final class AppCoordinator {
         panel.onPreset = { [weak self] id in self?.applyPreset(id: id) }
         panel.onSaveWindow = { [weak self] in self?.saveWindow() }
         panel.onRestoreWindow = { [weak self] in self?.restoreWindow() }
+        panel.onRestoreAllWindows = { [weak self] in self?.restoreAllWindows() }
         panel.onSettings = { [weak self] in self?.openSettings() }
         panel.onQuit = { [weak self] in self?.quit() }
         panel.onCancel = { [weak self] in self?.stopWatchingWindow() }
@@ -206,11 +207,14 @@ final class AppCoordinator {
             guard let saved = settings.savedWindows.first(where: {
                 $0.matches(identity, displayUUID: displayUUID, pixelWidth: resolution.0, pixelHeight: resolution.1)
             }) else { throw WindowOperationError.noSavedWindow }
-            let frame = CGRect(x: screen.frame.minX + saved.x, y: screen.frame.minY + saved.y,
-                               width: saved.width, height: saved.height)
-            try windowManager.apply(appKitRect: frame, to: target)
+            try windowManager.apply(appKitRect: saved.frame(on: screen.frame), to: target)
             panel.cancel()
         } catch { showError(error) }
+    }
+
+    private func restoreAllWindows() {
+        guard panel.isVisible, let screen = panel.screen else { return }
+        if windowManager.restoreAll(on: screen, savedWindows: settings.savedWindows) > 0 { panel.cancel() }
     }
 
     private func currentPanelTarget() throws -> WindowTarget {

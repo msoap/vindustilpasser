@@ -72,6 +72,65 @@ final class WindowManager {
         return WindowTarget(application: application, axWindow: window, originalAXFrame: frame, screen: screen)
     }
 
+    func captureTargets(on screen: NSScreen) -> [WindowTarget] {
+        guard AccessibilityPermission.granted,
+              let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]] else { return [] }
+        let screens = NSScreen.screens
+        guard let screenIndex = screens.firstIndex(of: screen),
+              let primary = ScreenGeometry.primaryScreen(in: screens),
+              let primaryIndex = screens.firstIndex(of: primary) else { return [] }
+        let inventory = WindowInventory(windowInfo: info, screenFrames: screens.map(\.frame),
+                                        screenIndex: screenIndex, primaryIndex: primaryIndex)
+        var targets: [WindowTarget] = []
+        for pid in inventory.windowIDsByPID.keys.sorted() {
+            guard pid != getpid(), let application = NSRunningApplication(processIdentifier: pid),
+                  !application.isTerminated, !application.isHidden else { continue }
+            let appElement = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(appElement, 0.5)
+            guard let windows = AXHelpers.optionalAttribute(appElement, kAXWindowsAttribute as CFString) as? [AXUIElement] else {
+                continue
+            }
+            for window in windows {
+                guard (AXHelpers.optionalAttribute(window, kAXRoleAttribute as CFString) as? String) == (kAXWindowRole as String),
+                      !AXHelpers.bool(window, kAXMinimizedAttribute as CFString),
+                      !AXHelpers.bool(window, "AXFullScreen" as CFString),
+                      let id = AXHelpers.windowID(window), inventory.contains(id, pid: pid),
+                      let frame = try? AXHelpers.frame(window),
+                      ScreenGeometry.screen(for: ScreenGeometry.appKitRect(fromAX: frame), in: screens) == screen else {
+                    continue
+                }
+                targets.append(WindowTarget(application: application, axWindow: window, originalAXFrame: frame, screen: screen))
+            }
+        }
+        return targets
+    }
+
+    @discardableResult
+    func restoreAll(on screen: NSScreen, savedWindows: [SavedWindow]) -> Int {
+        guard let displayID = ScreenGeometry.displayID(for: screen),
+              let displayUUID = ScreenGeometry.displayUUID(for: displayID) else { return 0 }
+        let savedWindows = savedWindows.filter {
+            $0.displayUUID == displayUUID && $0.pixelWidth == CGDisplayPixelsWide(displayID)
+                && $0.pixelHeight == CGDisplayPixelsHigh(displayID)
+        }
+        guard !savedWindows.isEmpty else { return 0 }
+        var restored = 0
+        for target in captureTargets(on: screen) {
+            do {
+                let identity = try identity(for: target)
+                guard let saved = savedWindows.first(where: { $0.identity == identity }),
+                      !target.application.isHidden else { continue }
+                try apply(appKitRect: saved.frame(on: screen.frame), to: target)
+                restored += 1
+            } catch {
+                // Keep failures local to each window; alerts would disturb the user's focus.
+                logger.debug("Skipped batch restore for PID \(target.pid): \(error.localizedDescription)")
+            }
+        }
+        return restored
+    }
+
     @discardableResult
     func apply(appKitRect: CGRect, to target: WindowTarget) throws -> CGRect {
         try AccessibilityPermission.require()

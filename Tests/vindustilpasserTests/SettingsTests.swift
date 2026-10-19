@@ -15,6 +15,9 @@ struct SettingsTests {
         let decoded = try SettingsMigration.decode(data)
         #expect(decoded.presets == settings.presets)
         #expect(decoded.general.activationHotKey == settings.general.activationHotKey)
+        #expect(settings.general.restoreAllWindowsHotKey == HotKey(keyCode: UInt32(kVK_ANSI_L),
+                                                                 modifiers: [.command, .shift], displayKey: "L"))
+        #expect(decoded.general.restoreAllWindowsHotKey == settings.general.restoreAllWindowsHotKey)
     }
 
     @Test func invalidFilePreserved() throws {
@@ -146,5 +149,61 @@ struct SettingsTests {
         try settings.validate()
         settings.savedWindows[1].identity = mainWindow
         #expect(throws: SettingsError.self) { try settings.validate() }
+    }
+
+    @Test func restoreAllShortcutCanBeEditedAndPersisted() throws {
+        var settings = AppSettings.defaults
+        let custom = HotKey(keyCode: UInt32(kVK_ANSI_R), modifiers: [.command, .option], displayKey: "R")
+        settings.general.restoreAllWindowsHotKey = custom
+        let decoded = try SettingsMigration.decode(JSONEncoder().encode(settings))
+        #expect(decoded.general.restoreAllWindowsHotKey == custom)
+        #expect(decoded.general.restoreWindowHotKey == AppSettings.defaultRestoreHotKey)
+    }
+
+    @Test func oldSettingsGainRestoreAllWithoutChangingExistingShortcuts() throws {
+        let settings = AppSettings.defaults
+        let migrated = try withoutRestoreAllShortcut(settings)
+        #expect(migrated.general.restoreAllWindowsHotKey == AppSettings.defaultRestoreAllHotKey)
+        #expect(migrated.general.saveWindowHotKey == settings.general.saveWindowHotKey)
+        #expect(migrated.general.restoreWindowHotKey == settings.general.restoreWindowHotKey)
+        #expect(migrated.presets == settings.presets)
+    }
+
+    @Test(arguments: [ShortcutScope.local, .global])
+    func oldSettingsKeepPresetsUsingRestoreAllDefault(scope: ShortcutScope) throws {
+        var settings = AppSettings.defaults
+        settings.presets.append(WindowPreset(id: UUID(), name: "Existing shortcut", scope: scope,
+                                             hotKey: AppSettings.defaultRestoreAllHotKey, area: settings.presets[0].area))
+        let migrated = try withoutRestoreAllShortcut(settings)
+        #expect(migrated.presets == settings.presets)
+        #expect(migrated.general.restoreAllWindowsHotKey != AppSettings.defaultRestoreAllHotKey)
+        try migrated.validate()
+    }
+
+    @Test func restoreAllShortcutCannotConflictWithOtherActions() throws {
+        var settings = AppSettings.defaults
+        for key in [settings.general.saveWindowHotKey, settings.general.restoreWindowHotKey,
+                    settings.general.activationHotKey, try #require(settings.presets[0].hotKey)] {
+            settings.general.restoreAllWindowsHotKey = key
+            #expect(throws: SettingsError.conflict) { try settings.validate() }
+        }
+        settings.general.restoreAllWindowsHotKey = HotKey(keyCode: UInt32(kVK_Return), modifiers: [], displayKey: "Return")
+        #expect(throws: SettingsError.invalid) { try settings.validate() }
+    }
+
+    @Test func savedFrameUsesTheMonitorOriginWithoutGridSnapping() {
+        let saved = SavedWindow(id: UUID(), identity: .init(bundleID: "com.example.Editor", kind: .document, value: "file:///test"),
+                                applicationName: "Editor", windowName: "Test", displayName: "Display", displayUUID: "display",
+                                pixelWidth: 1920, pixelHeight: 1080, x: 31.5, y: 42.25, width: 900.5, height: 600.75)
+        #expect(saved.frame(on: CGRect(x: -1920, y: 1080, width: 1920, height: 1080))
+                == CGRect(x: -1888.5, y: 1122.25, width: 900.5, height: 600.75))
+    }
+
+    private func withoutRestoreAllShortcut(_ settings: AppSettings) throws -> AppSettings {
+        var object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(settings)) as? [String: Any])
+        var general = try #require(object["general"] as? [String: Any])
+        general.removeValue(forKey: "restoreAllWindowsHotKey")
+        object["general"] = general
+        return try SettingsMigration.decode(JSONSerialization.data(withJSONObject: object))
     }
 }
